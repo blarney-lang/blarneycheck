@@ -1,0 +1,32 @@
+Phase 1 Project Selection Status Report
+    Name: Jonas Fiala
+    College: Trinity Hall
+    User Identifier: jf613
+    Director of Studies: Simon Moore & Hatice Gunes
+    
+Please complete 1, 2 and 3 below.
+    1. Please write 100 words on your current project ideas.
+    
+    2. Please list names of potential project supervisors.
+Matthew Naylor
+
+    3. Is there any chance that your project will involve any
+       computing resources other than the Computing Service’s MCS
+       and software that is already installed there, for example:
+       your own machine, machines in College, special peripherals,
+       imported software packages, special hardware, network access,
+       substantial extra disc space on the MCS.
+FPGA
+Machines in College - similar to MCS machines
+I plan to use my own computer
+My computer:  3 GHz CPU, 4 GB RAM, 300 GB Solid-state
+disk, Linux OS
+My contingency plans against data loss are that everything
+will be held under git on Bitbucket with daily checkpoints to
+my Google Drive and also weekly to SD Cards kept only for
+that purposes.
+My contingency plans against hardware/software failure are
+that I can easily transition my work to the MCS
+
+       If so indicate below what, and what it is needed for.
+       
