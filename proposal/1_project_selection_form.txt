@@ -13,19 +13,30 @@ Director of Studies:  Simon Moore & Hatice Gunes
 Please complete 1, 2 and 3 below.
 
 1. Please write 100 words on your current project ideas.
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
+
+BlarneyCheck would be a Haskell library for testing
+Blarney (https://github.com/mn416/blarney), allowing user
+defined properties to be verified. The test cases would be
+generated automatically by BlarneyCheck.
+I would take the ideas from QuickCheck/SmallCheck and also
+BlueCheck but apply them to Blarney.
+The success criteria could be defined as building a version of
+SmallCheck that can test sequential logic circuits.
+There are many further possibilities beyond the success criteria
+for this project:
+  - Compare speed of synthesized BlarneyCheck rig vs simulated
+  - Build a SMT solver backend for Blarney and compare speeds
+    against BlarneyCheck
+  - Extend BlarneyCheck to allow for random testing (QuickCheck)
+  - Extend BlarneyCheck to work with combinatorial logic
+
+
 
 2. Please list names of potential project supervisors.
+
 Matthew Naylor
+
+
 
 3. Is there any chance that your project will involve any
 computing resources other than the Computing Service's MCS and
@@ -35,9 +46,9 @@ software packages, special hardware, network access, substantial
 extra disc space on the MCS.
 
 If so indicate below what, and what it is needed for.
-                                                                 
+
 FPGA
-Haskell?
+Haskell (ghc)?
 Machines in College - similar to MCS machines
 I also plan to use my own laptop and computer
 My computer:  3 GHz CPU, 4 GB RAM, 300 GB Solid-state
