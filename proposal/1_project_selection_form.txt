@@ -25,9 +25,7 @@ Please complete 1, 2 and 3 below.
                                                                  
 
 2. Please list names of potential project supervisors.
-                                                                 
-                                                                 
-                                                                 
+Matthew Naylor
 
 3. Is there any chance that your project will involve any
 computing resources other than the Computing Service's MCS and
@@ -39,12 +37,13 @@ extra disc space on the MCS.
 If so indicate below what, and what it is needed for.
                                                                  
 FPGA
+Haskell?
 Machines in College - similar to MCS machines
-I plan to use my own computer
+I also plan to use my own laptop and computer
 My computer:  3 GHz CPU, 4 GB RAM, 300 GB Solid-state
 disk, Linux OS
 My contingency plans against data loss are that everything
-will be held under git on Bitbucket with daily checkpoints to
+will be held under git on Github with daily checkpoints to
 my Google Drive and also weekly to SD Cards kept only for
 that purposes.
 My contingency plans against hardware/software failure are
