@@ -1,4 +1,4 @@
-Subject: Phase 1 - Fiala: BlarneyCheck
+Subject: Phase 1 - Fiala: Property-based testing for hardware
 
 Phase 1 Project Selection Status Report
 
@@ -14,21 +14,26 @@ Please complete 1, 2 and 3 below.
 
 1. Please write 100 words on your current project ideas.
 
-BlarneyCheck would be a Haskell library for testing
-Blarney (https://github.com/mn416/blarney), allowing user
-defined properties to be verified. The test cases would be
-generated automatically by BlarneyCheck.
-I would take the ideas from QuickCheck/SmallCheck and also
-BlueCheck but apply them to Blarney.
-The success criteria could be defined as building a version of
-SmallCheck that can test sequential logic circuits.
+QuickCheck and SmallCheck are existing testing libraries that
+encourage lightweight formal specification of software through
+the reward of automatic testing and small counter-examples.
+The idea of this project would be to apply a similar approach
+to a HDL.
+The HDL of choice would be Blarney (https://github.com/mn416/blarney)
+for Haskell. This is similar to what BlueCheck does, but with the
+novelty of verification in an open source context (Blarney) and
+using bounded exhaustive testing rather than random testing.
+The evaluation criteria would be defined as building a version of
+SmallCheck that can test combinatorial logic circuits; finding bugs
+in a suite of example buggy circuits and properties. I could then
+measure the size of counter-examples found, measure time taken to
+find counter examples and compare that to the time taken on a test
+rig synthesized to an FPGA.
 There are many further possibilities beyond the success criteria
 for this project:
- - Compare speed of synthesized BlarneyCheck rig vs simulated
  - Build a SMT solver backend for Blarney and compare speeds
-    against BlarneyCheck
- - Extend BlarneyCheck to allow for random testing (QuickCheck)
- - Extend BlarneyCheck to work with combinatorial logic
+ - Extend to allow for random testing (like QuickCheck)
+ - Extend to work with sequential logic (like BlueCheck)
 
 
 
@@ -50,7 +55,9 @@ If so indicate below what, and what it is needed for.
  - Haskell: require ghc version 8.6.1 for Blarney, but the default
     apt get ghc installs version 8.0.2 (this is what is on MCS) so must
     download manually.
- - Blarney: download with git clone.
+ - CL account: can access required version of ghc if necessary, also to
+    use Bluespec/BlueCheck if necessary.
+ - Blarney: downloaded with git clone.
  - Machines in College - similar to MCS machines.
  - FPGA: for synthesizing testing rigs.
  - I also plan to use my own laptop and computer
@@ -63,4 +70,4 @@ If so indicate below what, and what it is needed for.
      my Google Drive and also weekly to USB Flash Drive kept only for
      that purpose.
     My contingency plans against hardware/software failure are
-     that I can easily transition my work to the MCS
+     that I can easily transition my work to the MCS/CL machines
