@@ -26,7 +26,7 @@ There are many further possibilities beyond the success criteria
 for this project:
  - Compare speed of synthesized BlarneyCheck rig vs simulated
  - Build a SMT solver backend for Blarney and compare speeds
-   against BlarneyCheck
+    against BlarneyCheck
  - Extend BlarneyCheck to allow for random testing (QuickCheck)
  - Extend BlarneyCheck to work with combinatorial logic
 
@@ -48,17 +48,19 @@ extra disc space on the MCS.
 If so indicate below what, and what it is needed for.
 
  - Haskell: require ghc version 8.6.1 for Blarney, but the default
-   apt get ghc installs version 8.0.2 (this is what is on MCS) so must
-   download manually.
- - Blarney: download with git clone, simple usage.
- - Machines in College - similar to MCS machines
- - FPGA, for synthesizing testing rigs
+    apt get ghc installs version 8.0.2 (this is what is on MCS) so must
+    download manually.
+ - Blarney: download with git clone.
+ - Machines in College - similar to MCS machines.
+ - FPGA: for synthesizing testing rigs.
  - I also plan to use my own laptop and computer
-My computer:  3 GHz CPU, 8 GB RAM, 300 GB Solid-state
-disk, Windows OS with Ubuntu VM
-My contingency plans against data loss are that everything
-will be held under git on Github with daily checkpoints to
-my Google Drive and also weekly to SD Cards kept only for
-that purposes.
-My contingency plans against hardware/software failure are
-that I can easily transition my work to the MCS
+    My laptop:  2.30 GHz CPU, 8 GB RAM, 118 GB Solid-state disk for OS
+     and 447 GB Solid-state disk for data, Windows OS with Ubuntu VM
+    My computer:  3.50 GHz CPU, 8 GB RAM, 256 GB Solid-state disk for OS
+     and 1 TB Solid-state disk for data, Windows OS with Ubuntu VM
+    My contingency plans against data loss are that everything
+     will be held under git on Github with daily checkpoints to
+     my Google Drive and also weekly to USB Flash Drive kept only for
+     that purpose.
+    My contingency plans against hardware/software failure are
+     that I can easily transition my work to the MCS
