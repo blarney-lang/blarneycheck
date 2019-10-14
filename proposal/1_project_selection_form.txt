@@ -24,11 +24,11 @@ The success criteria could be defined as building a version of
 SmallCheck that can test sequential logic circuits.
 There are many further possibilities beyond the success criteria
 for this project:
-  - Compare speed of synthesized BlarneyCheck rig vs simulated
-  - Build a SMT solver backend for Blarney and compare speeds
-    against BlarneyCheck
-  - Extend BlarneyCheck to allow for random testing (QuickCheck)
-  - Extend BlarneyCheck to work with combinatorial logic
+ - Compare speed of synthesized BlarneyCheck rig vs simulated
+ - Build a SMT solver backend for Blarney and compare speeds
+   against BlarneyCheck
+ - Extend BlarneyCheck to allow for random testing (QuickCheck)
+ - Extend BlarneyCheck to work with combinatorial logic
 
 
 
@@ -47,12 +47,15 @@ extra disc space on the MCS.
 
 If so indicate below what, and what it is needed for.
 
-FPGA
-Haskell (ghc)?
-Machines in College - similar to MCS machines
-I also plan to use my own laptop and computer
-My computer:  3 GHz CPU, 4 GB RAM, 300 GB Solid-state
-disk, Linux OS
+ - Haskell: require ghc version 8.6.1 for Blarney, but the default
+   apt get ghc installs version 8.0.2 (this is what is on MCS) so must
+   download manually.
+ - Blarney: download with git clone, simple usage.
+ - Machines in College - similar to MCS machines
+ - FPGA, for synthesizing testing rigs
+ - I also plan to use my own laptop and computer
+My computer:  3 GHz CPU, 8 GB RAM, 300 GB Solid-state
+disk, Windows OS with Ubuntu VM
 My contingency plans against data loss are that everything
 will be held under git on Github with daily checkpoints to
 my Google Drive and also weekly to SD Cards kept only for
