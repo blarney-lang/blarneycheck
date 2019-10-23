@@ -1,0 +1,3 @@
+"How to Specify it! A Guide to Writing Properties of Pure Functions" https://www.tfp2019.org/resources/tfp2019-how-to-specify-it.pdf
+
+"Testing monadic code withe QuickCheck"	https://dl.acm.org/citation.cfm?id=636527
