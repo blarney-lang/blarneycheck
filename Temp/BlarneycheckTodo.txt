@@ -1,0 +1,14 @@
+Forall(Bits a => a -> Prop)
+Forall(KnownNat n => Bit n -> Prop)
+ForallList(Int -> [Bit 8] -> Prop)
+
+
+prop = ForAllList \xs -> isSOrted(sort xs)
+
+widthOf :: KnownNat n => n -> int
+sizeOf :: Bits a => a -> int
+
+Instantiate prop just once
+
+class Serial a
+ series :: Int -> [a]
