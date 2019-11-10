@@ -5,7 +5,7 @@ twoSort (a, b) = a .<. b ? ((a, b), (b, a))
 
 {-
 top :: Module ()
-top = do
+top = always do
   display "twoSort (1,2) = " (twoSort (1,2))
   display "twoSort (2,1) = " (twoSort (2,1))
   finish
@@ -22,10 +22,13 @@ sort [] = []
 sort (x:xs) = smallest : sort rest
   where (smallest:rest) = bubble (x:xs)
 
+firstHot :: Bit 8 -> Bit 8
+firstHot x = x .&. ((inv x) .+. 1);
+
 top :: Module ()
 top = always do
-  let inputs = [2, 5, 3, 2, 9]
-  display "sort " inputs " = " (sort inputs)
+  let input = 8
+  display "fh " input " = " (firstHot input)
   finish
 
 main :: IO ()
