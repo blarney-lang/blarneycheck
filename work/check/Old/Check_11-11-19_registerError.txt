@@ -1,0 +1,20 @@
+﻿Check.hs:49:51: error:
+    • Could not deduce (Val (Module (Reg a)) a1)
+        arising from a use of ‘val’
+      from the context: Bits a
+        bound by the type signature for:
+                   checkSeq :: forall a.
+                               Bits a =>
+                               Prop -> [Module (Reg a)] -> Action ()
+        at Check.hs:47:1-59
+      or from: Bits a1
+        bound by a pattern with constructor:
+                   Forall :: forall a. Bits a => (a -> Prop) -> Prop,
+                 in an equation for ‘checkSeq’
+        at Check.hs:49:11-18
+    • In the second argument of ‘(.)’, namely ‘val’
+      In the first argument of ‘f’, namely ‘(reg . val)’
+      In the first argument of ‘checkSeq’, namely ‘(f (reg . val))’
+   |
+49 | checkSeq (Forall f) (reg:regs) = checkSeq (f (reg.val)) regs
+   |                                                   ^^^
