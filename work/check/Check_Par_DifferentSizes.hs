@@ -2,7 +2,7 @@
 
 import Blarney
 
-data Prop x where
+data Prop a where
   Assert :: (Bit 1) -> Prop (Bit 1)
   Forall :: (Bits a, KnownNat (SizeOf a), Bits b, KnownNat (SizeOf b)) => (a -> Prop b) -> Prop a
 

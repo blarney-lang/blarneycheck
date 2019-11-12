@@ -2,30 +2,46 @@
 
 import Blarney
 
-data Prop x where
-  Assert :: (Bit 1) -> Prop (Bit 1)
-  Forall :: (Bits a, KnownNat (SizeOf a), Bits b, KnownNat (SizeOf b)) => (a -> Prop b) -> Prop a
+data Prop where
+  Assert :: (Bit 1) -> Prop
+  Forall :: (Bits a, KnownNat (SizeOf a)) => (a -> Prop) -> Prop
+  ForallList :: (Bits a, KnownNat (SizeOf a)) => Integer -> ([a] -> Prop) -> Prop
 
+concatHelp :: [[Integer]] -> Integer -> [[Integer]]
+concatHelp [[]] numToPrepend = [[numToPrepend]]
+concatHelp (xs:xss) numToPrepend = (numToPrepend:xs):(concatHelp xss numToPrepend)
 
-applyToProp :: (Bits a, KnownNat (SizeOf a), Bits b, KnownNat (SizeOf b)) => Integer -> Prop a -> [Prop b]
-applyToProp n (Forall (f :: (a -> Prop b))) = map f (map (\x -> unpack (constant x)) [0 .. n])
+genPermutations :: Integer -> Integer -> [[Integer]]
+genPermutations maxDepth 0 = [[]]
+genPermutations maxDepth length = concatMap (concatHelp (genPermutations maxDepth (length-1))) [0 .. maxDepth]
 
-genInputs :: (Bits a, KnownNat (SizeOf a)) => Integer -> [Prop a] -> [Prop (Bit 1)]
+genListInputs :: Integer -> Integer -> Integer -> [[Integer]]
+genListInputs maxLength maxDepth currLength
+  | maxLength == currLength = genPermutations maxDepth currLength
+  | otherwise               = (genPermutations maxDepth currLength) ++ (genListInputs maxLength maxDepth (currLength+1))
+
+applyToProp :: Integer -> Prop -> [Prop]
+applyToProp n (Forall f) = map f (map (\x -> unpack (constant x)) [0 .. n])
+applyToProp n (ForallList maxLength f) = map f (map (\x -> map (\y -> unpack (constant y)) x) (genListInputs maxLength n 0))
+
+genInputs :: Integer -> [Prop] -> [Prop]
 genInputs _ [] = []
 genInputs n props@((Assert _):xs) = props
 genInputs n props@((Forall _):xs) = 
   genInputs n (concat (map (applyToProp n) props))
+genInputs n props@((ForallList _ _):xs) = 
+    genInputs n (concatMap (applyToProp n) props)
 
-displayProps :: (Bits a, KnownNat (SizeOf a)) => [Prop a] -> Action ()
+displayProps :: [Prop] -> Action ()
 displayProps [] = finish
 displayProps ((Assert p):props) = do
   display "Test, result: " (p)
   displayProps props
 
-checkTwo :: (Bits a, KnownNat (SizeOf a)) => Integer -> Prop a -> Action ()
+checkTwo :: Integer -> Prop -> Action ()
 checkTwo depth prop = displayProps (genInputs depth [prop])
 
-check :: (Bits a, KnownNat (SizeOf a)) => Integer -> Prop a -> Module()
+check :: Integer -> Prop -> Module()
 check depth prop = do
   let testSeq = (checkTwo (2^3-1) prop)
 

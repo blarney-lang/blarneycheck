@@ -2,56 +2,71 @@
 
 import Blarney
 
-data Prop n where
-  Assert :: (Bit 1) -> Prop n
-  Forall :: KnownNat n => (Bit n -> Prop n) -> Prop n
+data Generator where
+  Empty :: Action () -> Generator
+  Gen :: Generator -> Action () -> Action () -> (Bit 1) -> Action () -> Generator
+  --     Gen below     Display     Increment    Is full     Reset
 
-calculateReqRegs :: Prop n -> Int
-calculateReqRegs (Assert _) = 0
-calculateReqRegs (Forall f) = 1 + calculateReqRegs (f (constant 0))
+data Prop where
+  Assert :: (Bit 1) -> Prop
+  Forall :: (Bits a, KnownNat (SizeOf a)) => (a -> Prop) -> Prop
 
-displayProp :: KnownNat n => Prop n -> [Reg (Bit n)] -> Action ()
-displayProp (Assert p) [] = do
-  display "test result: " (p)
-displayProp prop@(Assert _) (x:xs) = do
-  display_ (x.val) " "
-  displayProp prop xs
+displayProp :: Generator -> Action ()
+displayProp (Empty disp) = disp
+displayProp (Gen _ disp _ _ _) = disp
 
-checkSeq :: KnownNat n => Prop n -> [Reg (Bit n)] -> [Reg (Bit n)] -> Action ()
-checkSeq prop@(Assert _) _ usedRegs = displayProp prop usedRegs
-checkSeq (Forall f) (reg:regs) usedRegs = checkSeq (f (reg.val)) regs (reg:usedRegs)
-checkSeq (Forall f) [] usedRegs = checkSeq (f (constant 0)) [] usedRegs
-       
-isFull :: (KnownNat n) => Reg (Bit n) -> Bit 1
-isFull x = (x.val + 1) .==. 0
+displayPropWithValue :: (Bits a, KnownNat (SizeOf a)) => a -> Generator -> Action ()
+displayPropWithValue x g = do
+  display_ (pack x) " "
+  displayProp g
 
-incrementRegs :: (KnownNat n) => [Reg (Bit n)] -> Action ()
-incrementRegs [] = finish
-incrementRegs (x:xs) = do
-  if (isFull x)
+checkSeq :: Prop -> Module (Generator)
+checkSeq (Assert p) = do
+  return (Empty (display "Test result: " p))
+checkSeq (Forall f) = do
+  input <- makeReg (unpack 0)
+  g <- checkSeq (f (input.val))
+  return (Gen g (displayPropWithValue (input.val) g) (input <== unpack (input.getRegVal + 1)) (isFull input) (input <== (unpack 0)))
+{-}
+checkSeq :: Prop -> Module ()
+checkSeq prop@(Assert _) = runOnce (Action (displayProp prop))
+checkSeq (Forall f) = do
+  input <- makeReg 0
+  let m = checkSeq (f (input.val))
+  m
+-}
+getRegVal :: (Bits a, KnownNat (SizeOf a)) => Reg a -> Bit (SizeOf a)
+getRegVal x = pack (x.val)
+
+isFull :: (Bits a, KnownNat (SizeOf a)) => Reg a -> Bit 1
+isFull x = (x.getRegVal + 1) .==. 0
+
+incrementGen :: Generator -> Action ()
+incrementGen (Empty _) = finish
+incrementGen (Gen g _ increment full reset) = do
+  if full
     then do
-      x <== 0
-      incrementRegs xs
+      reset
+      incrementGen g
     else
-      x <== x.val + 1
+      increment
 
-check :: (KnownNat n) => Prop n -> Module()
+check :: Prop -> Module()
 check prop = do
-  regs :: [Reg (Bit n)] <- mapM makeReg (replicate (calculateReqRegs prop) 0)
-  let testSeq = (checkSeq prop regs [])
+  g <- (checkSeq prop)
 
   globalTime :: Reg (Bit 32) <- makeReg 0
   always do
     --(when (globalTime.val .==. 2000) finish)
     globalTime <== globalTime.val + 1
-    incrementRegs regs
-    testSeq
-    display "Time: " (globalTime.val)
+    incrementGen g
+    displayProp g
+    --display "Time: " (globalTime.val)
 
 
 top :: Module ()
 top = do
-  let propSubComm = Forall \a -> Forall \b -> Assert (a-b.==.a) :: Prop 3
+  let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 3)-b.==.b-a)
   -- Displays results in reverse: ie. increment b to max, then a + 1 and b to max again etc.
   check propSubComm
 
