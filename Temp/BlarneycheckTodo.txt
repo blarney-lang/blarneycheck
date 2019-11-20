@@ -12,3 +12,21 @@ Instantiate prop just once
 
 class Serial a
  series :: Int -> [a]
+
+-------
+
+data ShowList where
+	ShowList :: Show a => [a]
+
+data Gen a =
+
+-------
+
+Make sequential check work with Bits (Serial)
+--Create sorter (buggy) and check lists
+Allow choice of seq or par check
+
+-------
+
+Create sorter (buggy) and check lists
+Streams?
