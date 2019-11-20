@@ -75,9 +75,9 @@ firstHot x = x .&. ((inv x) .+. 1);
 top :: Module ()
 top = do
   --let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 3)-b.==.b-a)
-  let prop_OneIsHot = Forall \x -> Assert (countOnes (firstHot (x :: Bit 4)) .==. ((x .==. 0) ? (0, 1)))
+  let prop_OneIsHot =     Forall \x -> Assert (countOnes (firstHot (x :: Bit 4)) .==. ((x .==. 0) ? (0, 1)))
   let prop_HotBitCommon = Forall \x -> Assert ((x :: Bit 4) .&. (firstHot x) .==. (firstHot x))
-  let prop_HotBitFirst = Forall \x -> Assert ((x :: Bit 4) .&. ((firstHot x) - 1) .==. 0)
+  let prop_HotBitFirst =  Forall \x -> Assert ((x :: Bit 4) .&. ((firstHot x) - 1) .==. 0)
   
   t1Complete <- check prop_OneIsHot
   t2Complete <- check prop_HotBitCommon
