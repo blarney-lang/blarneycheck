@@ -4,7 +4,6 @@
 {-# LANGUAGE GADTs #-}
 
 import Blarney
---import Series -- Doesnt work?
 
 data TestBench where
   Empty :: Action () -> TestBench
@@ -16,16 +15,11 @@ data Prop where
   Assert :: (Bit 1) -> Prop
   Forall :: (Bits a, KnownNat (SizeOf a)) => String -> (a -> Prop) -> Prop
 
-type Series a = Int -> [a]
-
-(\/) :: Series a -> Series a -> Series a
-s1 \/ s2 = \d -> s1 d ++ s2 d
-(><) :: Series a -> Series b -> Series (a, b)
-s1 >< s2 = \d -> [(x,y) | x <- s1 d, y <- s2 d]
-
-
 doActionList :: [Action ()] -> Action ()
-doActionList xs = foldr (>>) noAction xs
+doActionList [] = noAction
+doActionList (x:xs) = do
+  x
+  doActionList xs
 
 extractDones :: [TestBench] -> [Bit 1]
 extractDones [] = []

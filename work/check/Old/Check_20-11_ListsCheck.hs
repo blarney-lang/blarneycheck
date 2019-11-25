@@ -1,3 +1,5 @@
+-- First attempt at generating lists (a lot of functions used for this!!)
+
 {-# LANGUAGE GADTs #-}
 
 import Blarney
@@ -7,14 +9,22 @@ data Prop where
   Forall :: (Bits a, KnownNat (SizeOf a)) => (a -> Prop) -> Prop
   ForallList :: (Bits a, KnownNat (SizeOf a)) => Integer -> ([a] -> Prop) -> Prop
 
-genListInputs :: (Bits a, KnownNat (SizeOf a)) => Integer -> Integer -> [[a]]
-genListInputs maxDepth currLength
-  | currLength <= 0 = [[]]
-  | otherwise       = []:[ (unpack (constant x)):xs | x <- [0 .. maxDepth], xs <- (genListInputs maxDepth (currLength-1))]
+concatHelp :: [[Integer]] -> Integer -> [[Integer]]
+concatHelp [[]] numToPrepend = [[numToPrepend]]
+concatHelp (xs:xss) numToPrepend = (numToPrepend:xs):(concatHelp xss numToPrepend)
+
+genPermutations :: Integer -> Integer -> [[Integer]]
+genPermutations maxDepth 0 = [[]]
+genPermutations maxDepth length = concatMap (concatHelp (genPermutations maxDepth (length-1))) [0 .. maxDepth]
+
+genListInputs :: Integer -> Integer -> Integer -> [[Integer]]
+genListInputs maxLength maxDepth currLength
+  | maxLength == currLength = genPermutations maxDepth currLength
+  | otherwise               = (genPermutations maxDepth currLength) ++ (genListInputs maxLength maxDepth (currLength+1))
 
 applyToProp :: Integer -> Prop -> [Prop]
 applyToProp n (Forall f) = map f (map (\x -> unpack (constant x)) [0 .. n])
-applyToProp n (ForallList maxLength f) = map f (genListInputs n maxLength)
+applyToProp n (ForallList maxLength f) = map f (map (\x -> map (\y -> unpack (constant y)) x) (genListInputs maxLength n 0))
 
 genInputs :: Integer -> [Prop] -> [Prop]
 genInputs _ [] = []
@@ -33,8 +43,8 @@ displayProps ((Assert p):props) = do
 checkTwo :: Integer -> Prop -> Action ()
 checkTwo depth prop = displayProps (genInputs depth [prop])
 
-check :: Prop -> Module()
-check prop = do
+check :: Integer -> Prop -> Module()
+check depth prop = do
   let testSeq = (checkTwo (2^3-1) prop)
 
   --globalTime :: Reg (Bit 32) <- makeReg 0
@@ -46,33 +56,10 @@ check prop = do
     --display "Time: " (globalTime.val)
 
 
-
-twoSort :: (Bit 8, Bit 8) -> (Bit 8, Bit 8)
-twoSort (a, b) = b - a .>. 0 ? ((a, b), (b, a))
-
-bubble :: [Bit 8] -> [Bit 8]
-bubble [] = []
-bubble [x] = [x]
-bubble (x:y:rest) = bubble (small:rest) ++ [big]
-  where (small, big) = twoSort (x, y)
-
-sort :: [Bit 8] -> [Bit 8]
-sort [] = []
-sort (x:xs) = smallest : sort rest
-  where (smallest:rest) = bubble (x:xs)
-
-isSorted :: [Bit 8] -> Bit 1
-isSorted [] = 1
-isSorted [x] = 1
-isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
-
-
-
 top :: Module ()
 top = do
-  --let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 4)-b.==.b-a)
-  let propSort = ForallList 1 \a -> Assert (isSorted (sort a))
-  check propSort
+  let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 4)-b.==.b-a)
+  check (2^3-1) propSubComm
 
 
 main :: IO ()

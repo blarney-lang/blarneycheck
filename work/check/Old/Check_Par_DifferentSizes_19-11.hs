@@ -1,3 +1,5 @@
+-- Using prop a is more restrictive and generally wont work, this is a dead end
+
 {-# LANGUAGE GADTs #-}
 
 import Blarney

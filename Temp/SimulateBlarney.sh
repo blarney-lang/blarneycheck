@@ -3,7 +3,9 @@
 FILEDIR=${1?Error: no dir given}
 FILENAME=${2?Error: no file given}
 
+
 cd $FILEDIR
+pwd
 blc $FILENAME > /dev/null
 echo "Compiled! $FILEDIR$FILENAME"
 
