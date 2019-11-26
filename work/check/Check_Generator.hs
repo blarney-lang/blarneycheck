@@ -23,6 +23,10 @@ s1 \/ s2 = \d -> s1 d ++ s2 d
 (><) :: Series a -> Series b -> Series (a, b)
 s1 >< s2 = \d -> [(x,y) | x <- s1 d, y <- s2 d]
 
+forallInputs :: (Bits a, KnownNat (SizeOf a)) => [a]
+forallInputs = map (\x -> (unpack (constant x))) (iterate (\x -> x+1) 0)
+forallListInputs :: (Bits a, KnownNat (SizeOf a)) => [[a]]
+forallListInputs = 
 
 doActionList :: [Action ()] -> Action ()
 doActionList xs = foldr (>>) noAction xs

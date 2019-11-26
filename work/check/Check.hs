@@ -1,3 +1,6 @@
+-- Greatly shortened list generation with haskell list comprehension
+-- Added displaying inputs to tests
+
 {-# LANGUAGE GADTs #-}
 
 import Blarney
