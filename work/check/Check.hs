@@ -7,31 +7,35 @@ data Prop where
   Forall :: (Bits a, KnownNat (SizeOf a)) => (a -> Prop) -> Prop
   ForallList :: (Bits a, KnownNat (SizeOf a)) => Integer -> ([a] -> Prop) -> Prop
 
-genListInputs :: (Bits a, KnownNat (SizeOf a)) => Integer -> Integer -> [[a]]
+genListInputs :: Integer -> Integer -> [[Integer]]
 genListInputs maxDepth currLength
   | currLength <= 0 = [[]]
-  | otherwise       = []:[ (unpack (constant x)):xs | x <- [0 .. maxDepth], xs <- (genListInputs maxDepth (currLength-1))]
+  | otherwise       = []:[ x:xs | x <- [0 .. maxDepth], xs <- (genListInputs maxDepth (currLength-1))]
 
-applyToProp :: Integer -> Prop -> [Prop]
-applyToProp n (Forall f) = map f (map (\x -> unpack (constant x)) [0 .. n])
-applyToProp n (ForallList maxLength f) = map f (genListInputs n maxLength)
+applyToProp :: Integer -> (Prop, Action ())  -> [(Prop, Action ())]
+applyToProp n (Forall f, disp) = 
+  [(f (unpack (constant x)), disp >> display_ x ", ") | x <- [0 .. n]]
+applyToProp n (ForallList maxLength f, disp) = 
+  [(f (map (\x -> (unpack (constant x))) xs), disp >> display_ (fshowList xs) ", ") | xs <- (genListInputs n maxLength)]
 
-genInputs :: Integer -> [Prop] -> [Prop]
+genInputs :: Integer -> [(Prop, Action ())] -> [(Prop, Action ())]
 genInputs _ [] = []
-genInputs n props@((Assert _):xs) = props
-genInputs n props@((Forall _):xs) = 
-  genInputs n (concat (map (applyToProp n) props))
-genInputs n props@((ForallList _ _):xs) = 
+genInputs n props@((Assert _, _):xs) = props
+genInputs n props@((Forall _, _):xs) = 
+  genInputs n (concatMap (applyToProp n) props)
+genInputs n props@((ForallList _ _, _):xs) = 
     genInputs n (concatMap (applyToProp n) props)
 
-displayProps :: [Prop] -> Action ()
+displayProps :: [(Prop, Action ())] -> Action ()
 displayProps [] = finish
-displayProps ((Assert p):props) = do
-  display "Test, result: " (p)
+displayProps ((Assert p, disp):props) = do
+  display_ "Test with inputs: "
+  disp
+  display "\tresult: " (p)
   displayProps props
 
 checkTwo :: Integer -> Prop -> Action ()
-checkTwo depth prop = displayProps (genInputs depth [prop])
+checkTwo depth prop = displayProps (genInputs depth [(prop, noAction)])
 
 check :: Prop -> Module()
 check prop = do
@@ -48,7 +52,8 @@ check prop = do
 
 
 twoSort :: (Bit 8, Bit 8) -> (Bit 8, Bit 8)
-twoSort (a, b) = b - a .>. 0 ? ((a, b), (b, a))
+twoSort (a, b) = (b - a) + 5 .>. 5 ? ((a, b), (b, a))
+--twoSort (a, b) = a .<. b ? ((a, b), (b, a))
 
 bubble :: [Bit 8] -> [Bit 8]
 bubble [] = []
@@ -71,7 +76,7 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 top :: Module ()
 top = do
   --let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 4)-b.==.b-a)
-  let propSort = ForallList 1 \a -> Assert (isSorted (sort a))
+  let propSort = Forall \b -> ForallList 2 \a -> Assert (isSorted (sort a) .&. b)
   check propSort
 
 
