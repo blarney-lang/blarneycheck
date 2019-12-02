@@ -1,6 +1,12 @@
-module Series where
+module Check.Series where
 
-type Series a = Int -> [a]
+import Blarney
+
+type Series a = Integer -> [a]
+
+class Serial a where
+    series :: Series a
+
 
 (\/) :: Series a -> Series a -> Series a
 s1 \/ s2 = \d -> s1 d ++ s2 d

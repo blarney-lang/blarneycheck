@@ -4,7 +4,7 @@
 {-# LANGUAGE GADTs #-}
 
 import Blarney
---import Series -- Doesnt work?
+import Check.Series
 
 data TestBench where
   Empty :: Action () -> TestBench
@@ -16,17 +16,20 @@ data Prop where
   Assert :: (Bit 1) -> Prop
   Forall :: (Bits a, KnownNat (SizeOf a)) => String -> (a -> Prop) -> Prop
 
-type Series a = Int -> [a]
+instance (KnownNat a) => Serial (Bit a) where
+  series d = [constant 0]
 
-(\/) :: Series a -> Series a -> Series a
-s1 \/ s2 = \d -> s1 d ++ s2 d
-(><) :: Series a -> Series b -> Series (a, b)
-s1 >< s2 = \d -> [(x,y) | x <- s1 d, y <- s2 d]
+data MyBits where
+  AMyBits ::  (Bits a, KnownNat (SizeOf a)) => a -> MyBits
 
-forallInputs :: (Bits a, KnownNat (SizeOf a)) => [a]
-forallInputs = map (\x -> (unpack (constant x))) (iterate (\x -> x+1) 0)
-forallListInputs :: (Bits a, KnownNat (SizeOf a)) => [[a]]
-forallListInputs = 
+instance Serial MyBits where
+  series 0 = [AMyBits (unpack (constant 0))]
+  series d = [AMyBits new | d > 0, (AMyBits prev) <- series (d-1), new <- [prev, unpack ((pack prev) .|. (1 .<<. (constant (d-1))))]]
+
+cons0 c = \d -> [c]
+cons1 c 0 = [0]
+cons1 c d = [new | d > 0, prev <- series (d-1), new <- [prev, prev + (2 ^ (d-1))]]
+cons2 c = \d -> [c a b | d > 0,(a,b) <- (series >< series) (d-1)]
 
 doActionList :: [Action ()] -> Action ()
 doActionList xs = foldr (>>) noAction xs

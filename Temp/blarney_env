@@ -1,0 +1,2 @@
+export BLARNEY_ROOT="$HOME/Part_II_Project/blarney"
+export PATH="$BLARNEY_ROOT/Scripts:$PATH"
