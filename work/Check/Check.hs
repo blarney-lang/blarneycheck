@@ -26,6 +26,9 @@ sizeForall :: Prop -> Integer
 sizeForall (Assert _) = 1
 sizeForall (Forall (_ :: a -> Prop)) = toInteger (valueOf @(SizeOf a))
 sizeForall (ForallList _ (_ :: [a] -> Prop)) = toInteger (valueOf @(SizeOf a))
+    --g :: (Bits a, KnownNat (SizeOf a)) => Integer -> a
+    --g x = (unpack (constant (min x size))
+    --size = valueOf @(SizeOf a)
 
 genInputs :: [(Prop, Action ())] -> [(Prop, Action ())]
 genInputs [] = []
