@@ -15,19 +15,25 @@ genListInputs maxDepth currLength
   | currLength <= 0 = [[]]
   | otherwise       = []:[ x:xs | x <- [0 .. maxDepth], xs <- (genListInputs maxDepth (currLength-1))]
 
-applyToProp :: Integer -> (Prop, Action ())  -> [(Prop, Action ())]
-applyToProp n (Forall f, disp) = 
-  [(f (unpack (constant x)), disp >> display_ x ", ") | x <- [0 .. n]]
-applyToProp n (ForallList maxLength f, disp) = 
-  [(f (map (\x -> (unpack (constant x))) xs), disp >> display_ (fshowList xs) ", ") | xs <- (genListInputs n maxLength)]
+applyToProp :: (Prop, Action ())  -> [(Prop, Action ())]
+applyToProp prop@(Assert _, _) = [prop]
+applyToProp (prop@(Forall f), disp) = 
+  [(f (unpack (constant x)), disp >> display_ x ", ") | x <- [0 .. (sizeForall prop)]]
+applyToProp (prop@(ForallList maxLength f), disp) = 
+  [(f (map (\x -> (unpack (constant x))) xs), disp >> display_ (fshowList xs) ", ") | xs <- (genListInputs (sizeForall prop) maxLength)]
 
-genInputs :: Integer -> [(Prop, Action ())] -> [(Prop, Action ())]
-genInputs _ [] = []
-genInputs n props@((Assert _, _):xs) = props
-genInputs n props@((Forall _, _):xs) = 
-  genInputs n (concatMap (applyToProp n) props)
-genInputs n props@((ForallList _ _, _):xs) = 
-    genInputs n (concatMap (applyToProp n) props)
+sizeForall :: Prop -> Integer
+sizeForall (Assert _) = 1
+sizeForall (Forall (_ :: a -> Prop)) = toInteger (valueOf @(SizeOf a))
+sizeForall (ForallList _ (_ :: [a] -> Prop)) = toInteger (valueOf @(SizeOf a))
+
+genInputs :: [(Prop, Action ())] -> [(Prop, Action ())]
+genInputs [] = []
+genInputs props@((Assert _, _):xs) = props
+genInputs props@((Forall _, _):xs) = 
+  genInputs (concatMap (applyToProp) props)
+genInputs props@((ForallList _ _, _):xs) = 
+    genInputs (concatMap (applyToProp) props)
 
 displayProps :: [(Prop, Action ())] -> Action ()
 displayProps [] = finish
@@ -36,13 +42,17 @@ displayProps ((Assert p, disp):props) = do
   disp
   display "\tresult: " (p)
   displayProps props
+displayProps _ = noAction
 
-checkTwo :: Integer -> Prop -> Action ()
-checkTwo depth prop = displayProps (genInputs depth [(prop, noAction)])
+checkTwo :: Prop -> Action ()
+checkTwo prop = do
+  let initial = [(prop, noAction)]
+  let checkCases = (genInputs initial)
+  displayProps checkCases
 
 check :: Prop -> Module()
 check prop = do
-  let testSeq = (checkTwo (2^3-1) prop)
+  let testSeq = (checkTwo prop)
 
   --globalTime :: Reg (Bit 32) <- makeReg 0
 

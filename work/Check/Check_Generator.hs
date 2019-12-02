@@ -17,8 +17,10 @@ data Prop where
   Forall :: (Bits a, KnownNat (SizeOf a)) => String -> (a -> Prop) -> Prop
 
 instance (KnownNat a) => Serial (Bit a) where
-  series d = [constant 0]
+  series 0 = [constant 0]
+  series d = [new | d > 0, (prev) <- series (d-1), new <- [prev, (prev .|. (1 .<<. (constant (d-1) :: (Bit a))))]]
 
+{-
 data MyBits where
   AMyBits ::  (Bits a, KnownNat (SizeOf a)) => a -> MyBits
 
@@ -30,7 +32,7 @@ cons0 c = \d -> [c]
 cons1 c 0 = [0]
 cons1 c d = [new | d > 0, prev <- series (d-1), new <- [prev, prev + (2 ^ (d-1))]]
 cons2 c = \d -> [c a b | d > 0,(a,b) <- (series >< series) (d-1)]
-
+-}
 doActionList :: [Action ()] -> Action ()
 doActionList xs = foldr (>>) noAction xs
 
