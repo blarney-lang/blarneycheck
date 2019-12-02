@@ -1,5 +1,4 @@
--- Generalized TestBench to only provide the required functionality
--- Learned more about GADT and constructing them
+-- Create a series class that allows all the inputs up to a depth to be generated
 
 {-# LANGUAGE GADTs #-}
 
@@ -15,10 +14,6 @@ data TestBench where
 data Prop where
   Assert :: (Bit 1) -> Prop
   Forall :: (Bits a, KnownNat (SizeOf a)) => String -> (a -> Prop) -> Prop
-
-instance (KnownNat a) => Serial (Bit a) where
-  series 0 = [constant 0]
-  series d = [new | d > 0, (prev) <- series (d-1), new <- [prev, (prev .|. (1 .<<. (constant (d-1) :: (Bit a))))]]
 
 {-
 data MyBits where
@@ -51,23 +46,23 @@ incReg :: (Bits a, KnownNat (SizeOf a)) => a -> a
 incReg x = unpack ((pack x) + 1)
 
 createIncrementAction :: (Bits a, KnownNat (SizeOf a)) => (TestBench, Reg a) -> Action ()
-createIncrementAction ((Empty _), reg) = do
-  if (reg.val === ones)
+createIncrementAction ((Empty _), register) = do
+  if (register.val === ones)
     then do
       noAction
     else
-      (reg <== (incReg (reg.val)))
-createIncrementAction ((Gen _ increment isDone), reg) = do
-    if (reg.val === ones)
+      (register <== (incReg (register.val)))
+createIncrementAction ((Gen _ increment isDone), register) = do
+    if (register.val === ones)
       then 
         if isDone 
           then
             noAction
           else do
-            (reg <== (unpack 0))
+            (register <== (unpack 0))
             increment
       else
-        (reg <== (incReg (reg.val)))
+        (register <== (incReg (register.val)))
 
 {-Display action generating functions-}
 displayProp :: TestBench -> Action ()
@@ -76,7 +71,7 @@ displayProp (Gen disp _ _) = disp
 
 displayVarAndBelow :: (Bits a, KnownNat (SizeOf a)) => String -> (TestBench, Reg a) -> Action ()
 displayVarAndBelow name (g, x) = do
-  display "Set " name " to " (pack (x.val)) " "
+  _ <- display "Set " name " to " (pack (x.val)) " "
   displayProp g
 
 
@@ -89,7 +84,7 @@ checkGen (Forall name f) = do
   gs <- mapM checkGen (map (\r -> f (r.val)) inputs)
   let combined = zip gs inputs
   let displayValue = doActionList (map (displayVarAndBelow name) combined)
-  let isDone = andList ((map (\input -> (input.val === ones)) inputs)++(extractDones gs))
+  let isDone = andList ((map (\myin -> (myin.val === ones)) inputs)++(extractDones gs))
   let increment = if isDone then noAction else (doActionList (map createIncrementAction combined))
   return (Gen displayValue increment isDone)
 
@@ -117,7 +112,7 @@ check prop = do
       testComplete <== isFinished g
       incrementGen g
       displayProp g
-    --display "Time: " (globalTime.val)
+      display "Time: " (globalTime.val)
   return (testComplete.val)
 
 
