@@ -30,3 +30,14 @@ Allow choice of seq or par check
 
 Create sorter (buggy) and check lists
 Streams?
+
+-------
+
+Get max size of input
+
+Zero one principle of sorters
+
+https://github.com/POETSII/actora/blob/master/rtl/Stack.hs
+
+Look into koens thesis tutorial for examples
+

@@ -23,6 +23,13 @@ applyToProp (prop@(ForallList maxLength f), disp) =
 
 getMaxInegerSize :: Prop -> Integer
 getMaxInegerSize prop = 2 ^ (sizeProp prop) - 1
+sizeForall :: Prop -> Integer
+sizeForall (Assert _) = 1
+sizeForall (Forall (_ :: a -> Prop)) = toInteger (valueOf @(SizeOf a))
+sizeForall (ForallList _ (_ :: [a] -> Prop)) = toInteger (valueOf @(SizeOf a))
+    --g :: (Bits a, KnownNat (SizeOf a)) => Integer -> a
+    --g x = (unpack (constant (min x size))
+    --size = valueOf @(SizeOf a)
 
 sizeProp :: Prop -> Int
 sizeProp (Assert _) = 1

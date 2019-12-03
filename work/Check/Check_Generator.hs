@@ -1,6 +1,8 @@
 -- Create a series class that allows all the inputs up to a depth to be generated
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 import Blarney
 import Check.Series
@@ -14,6 +16,16 @@ data TestBench where
 data Prop where
   Assert :: (Bit 1) -> Prop
   Forall :: (Bits a, KnownNat (SizeOf a)) => String -> (a -> Prop) -> Prop
+
+{-
+instance (KnownNat a) => Serial (Bit a) where
+  series 0 = [constant 0]
+  series d = [new | d > 0, (prev) <- series (d-1), new <- [prev, (prev .|. (1 .<<. (constant (d-1) :: (Bit a))))]]
+-}
+
+instance (Bits a, KnownNat (SizeOf a)) => Serial a where
+  series d = [unpack (constant 0)]
+  --series d = [AMyBits new | d > 0, (AMyBits prev) <- series (d-1), new <- [prev, unpack ((pack prev) .|. (1 .<<. (constant (d-1))))]]
 
 {-
 data MyBits where
