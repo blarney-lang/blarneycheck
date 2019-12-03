@@ -34,10 +34,8 @@ Streams?
 -------
 
 Get max size of input
-
 Zero one principle of sorters
-
 https://github.com/POETSII/actora/blob/master/rtl/Stack.hs
-
 Look into koens thesis tutorial for examples
-
+	- Rotate left/right
+	- Matrix/Vector operations
