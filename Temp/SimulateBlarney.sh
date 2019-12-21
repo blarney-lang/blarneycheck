@@ -7,14 +7,14 @@ FILENAME=${2?Error: no file given}
 pwd
 echo "Filedir: $FILEDIR"
 echo "Filename: $FILENAME"
-blc "$FILEDIR/$FILENAME" > /dev/null
+blc "$FILEDIR/$FILENAME" #> /dev/null
 echo "Compiled! $FILEDIR/$FILENAME"
 
 cd $FILEDIR
 TEST=$(basename $FILENAME .hs)
 ./$TEST
 cd Out-Verilog
-make -s &> /dev/null
+make -s #&> /dev/null
 echo "Executed $TEST with result of:"
 ./top | head -n -1
 

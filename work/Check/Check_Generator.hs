@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 import Blarney
 import Check.Series
@@ -15,15 +16,17 @@ data TestBench where
 
 data Prop where
   Assert :: (Bit 1) -> Prop
-  Forall :: (Bits a, KnownNat (SizeOf a)) => String -> (a -> Prop) -> Prop
+  Forall :: SizedBits a => String -> (a -> Prop) -> Prop
 
+
+type SizedBits a = (Bits a, KnownNat (SizeOf a))
 {-
 instance (KnownNat a) => Serial (Bit a) where
   series 0 = [constant 0]
   series d = [new | d > 0, (prev) <- series (d-1), new <- [prev, (prev .|. (1 .<<. (constant (d-1) :: (Bit a))))]]
 -}
 
-instance (Bits a, KnownNat (SizeOf a)) => Serial a where
+instance SizedBits a => Serial a where
   series d = [unpack (constant 0)]
   --series d = [AMyBits new | d > 0, (AMyBits prev) <- series (d-1), new <- [prev, unpack ((pack prev) .|. (1 .<<. (constant (d-1))))]]
 
@@ -54,10 +57,10 @@ extractIncrements ((Empty _):gs) = (noAction):(extractIncrements gs)
 extractIncrements ((Gen _ increment _):gs) = increment:(extractIncrements gs)
 
 {-Increment action generating functions-}
-incReg :: (Bits a, KnownNat (SizeOf a)) => a -> a
+incReg :: SizedBits a => a -> a
 incReg x = unpack ((pack x) + 1)
 
-createIncrementAction :: (Bits a, KnownNat (SizeOf a)) => (TestBench, Reg a) -> Action ()
+createIncrementAction :: SizedBits a => (TestBench, Reg a) -> Action ()
 createIncrementAction ((Empty _), register) = do
   if (register.val === ones)
     then do
@@ -81,7 +84,7 @@ displayProp :: TestBench -> Action ()
 displayProp (Empty disp) = disp
 displayProp (Gen disp _ _) = disp
 
-displayVarAndBelow :: (Bits a, KnownNat (SizeOf a)) => String -> (TestBench, Reg a) -> Action ()
+displayVarAndBelow :: SizedBits a => String -> (TestBench, Reg a) -> Action ()
 displayVarAndBelow name (g, x) = do
   _ <- display "Set " name " to " (pack (x.val)) " "
   displayProp g

@@ -1,13 +1,16 @@
 -- Can now bit width of input from type so that we can generate all test cases exhaustively
 
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 import Blarney
 
+type SizedBits a = (Bits a, KnownNat (SizeOf a))
+
 data Prop where
   Assert :: (Bit 1) -> Prop
-  Forall :: (Bits a, KnownNat (SizeOf a)) => (a -> Prop) -> Prop
-  ForallList :: (Bits a, KnownNat (SizeOf a)) => Integer -> ([a] -> Prop) -> Prop
+  Forall :: SizedBits a => (a -> Prop) -> Prop
+  ForallList :: SizedBits a => Integer -> ([a] -> Prop) -> Prop
 
 genListInputs :: Integer -> Integer -> [[Integer]]
 genListInputs maxDepth currLength
@@ -22,7 +25,8 @@ applyToProp (prop@(ForallList maxLength f), disp) =
   [(f (map (\x -> (unpack (constant x))) xs), disp >> display_ (fshowList xs) ", ") | xs <- (genListInputs (getMaxInegerSize prop) maxLength)]
 
 getMaxInegerSize :: Prop -> Integer
-getMaxInegerSize prop = 2 ^ (sizeProp prop) - 1
+getMaxInegerSize prop = let size = (sizeProp prop) in
+                        if size < 2 then 1 else (2 ^ size) - 1
 sizeForall :: Prop -> Integer
 sizeForall (Assert _) = 1
 sizeForall (Forall (_ :: a -> Prop)) = toInteger (valueOf @(SizeOf a))
@@ -74,7 +78,8 @@ check prop = do
 
 
 twoSort :: KnownNat n => (Bit n, Bit n) -> (Bit n, Bit n)
-twoSort (a, b) = (b - a) + 5 .>. 5 ? ((a, b), (b, a))
+twoSort (a :: Bit n, b) = let halfSize = constant (toInteger (valueOf @(n))) in
+                          (b - a) + halfSize .>=. halfSize ? ((a, b), (b, a))
 --twoSort (a, b) = a .<. b ? ((a, b), (b, a))
 
 bubble :: KnownNat n => [Bit n] -> [Bit n]
@@ -98,7 +103,7 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 top :: Module ()
 top = do
   --let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 4)-b.==.b-a)
-  let propSort = Forall \b -> ForallList 2 \a -> Assert (isSorted (sort (a::[Bit 4])) .&. b)
+  let propSort = ForallList 4 \a -> Assert (isSorted (sort (a::[Bit 1])))
   check propSort
 
 

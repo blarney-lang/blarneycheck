@@ -39,3 +39,9 @@ https://github.com/POETSII/actora/blob/master/rtl/Stack.hs
 Look into koens thesis tutorial for examples
 	- Rotate left/right
 	- Matrix/Vector operations
+
+---------
+
+Implement for FPGA testing
+Generator
+
