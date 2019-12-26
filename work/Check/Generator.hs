@@ -1,3 +1,7 @@
+-- Problem is that we cannot test aribtrary data structures (eg. that the user has generated)
+-- Solution is to come up with a generator datatype which the user can specify for custom types and these can then be tested
+-- Two possiblilities of stateful vs stateless generator.
+
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -27,7 +31,7 @@ bitGen = Generator {
     isLast = \value -> value .==. ones
 }
 
-bitsGen :: SizedBits a => Generator a
+bitsGen :: (Bits a, KnownNat (SizeOf a)) => Generator a
 bitsGen = Generator {
     initial = unpack (constant 0),
     next = \prev -> unpack $ (pack prev) .+. 1,
