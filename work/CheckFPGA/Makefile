@@ -4,7 +4,7 @@ endif
 
 .PHONY: one
 one: 
-	make -C src
+	make -C Src
 	qsys-generate -syn SoC.qsys
 	quartus_sh --flow compile SoCKitTop.qpf
 
@@ -26,4 +26,4 @@ clean: clean-mif
 .PHONY: clean-mif
 clean-mif:
 	rm -f *.mif
-	make -C src clean
+	make -C Src clean
