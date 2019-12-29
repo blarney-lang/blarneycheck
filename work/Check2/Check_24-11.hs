@@ -1,28 +1,14 @@
--- Can now bit width of input from type so that we can generate all test cases exhaustively
-
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
+-- Writing some nicer Haskell with list comprehension to generate list inputs.
+-- But we still have a fixed sized bitvector input, want to generalise to Bits class - am struggling with Haskell types, want to avoid using extensions
+-- Also want to separate input 'generation' from testing (also allows user to specify custom generators)
+-- Possibly sequential testing to allow for synthesis.
+-- Need for always passing around display action for the result is not nice.
+-- successfully test a sorter network
 
 import Blarney
-import Check.Generator
 
-class Testable a where
-  test :: a -> (Bit 1)
+data Prop = Assert (Bit 1) | Forall (Bit 8 -> Prop) | ForallList Integer ([Bit 1] -> Prop)
 
-instance Testable (Bit 1) where
-  test b = b
-
-instance (Generator a, Testable b) => Testable (a -> b) where
-  test = testFunction
-
-{-
-data Prop where
-  Assert :: (Bit 1) -> Prop
-  Forall :: SizedBits a => (a -> Prop) -> Prop
-  ForallList :: SizedBits a => Integer -> ([a] -> Prop) -> Prop
--}
 genListInputs :: Integer -> Integer -> [[Integer]]
 genListInputs maxDepth currLength
   | currLength <= 0 = [[]]
@@ -31,25 +17,11 @@ genListInputs maxDepth currLength
 applyToProp :: (Prop, Action ())  -> [(Prop, Action ())]
 applyToProp prop@(Assert _, _) = [prop]
 applyToProp (prop@(Forall f), disp) = 
-  [(f (unpack (constant x)), disp >> display_ x ", ") | x <- [0 .. (getMaxInegerSize prop)]]
+  [(f (unpack (constant x)), disp >> display_ x ", ") | x <- [0 .. 2^8-1]]
 applyToProp (prop@(ForallList maxLength f), disp) = 
-  [(f (map (\x -> (unpack (constant x))) xs), disp >> display_ (fshowList xs) ", ") | xs <- (genListInputs (getMaxInegerSize prop) maxLength)]
+  [(f (map (\x -> (unpack (constant x))) xs), disp >> display_ (fshowList xs) ", ") | xs <- (genListInputs (2^1-1) maxLength)]
 
-getMaxInegerSize :: Prop -> Integer
-getMaxInegerSize prop = let size = (sizeProp prop) in
-                        if size < 2 then 1 else (2 ^ size) - 1
-sizeForall :: Prop -> Integer
-sizeForall (Assert _) = 1
-sizeForall (Forall (_ :: a -> Prop)) = toInteger (valueOf @(SizeOf a))
-sizeForall (ForallList _ (_ :: [a] -> Prop)) = toInteger (valueOf @(SizeOf a))
-    --g :: (Bits a, KnownNat (SizeOf a)) => Integer -> a
-    --g x = (unpack (constant (min x size))
-    --size = valueOf @(SizeOf a)
 
-sizeProp :: Prop -> Int
-sizeProp (Assert _) = 1
-sizeProp (Forall (_ :: a -> Prop)) = valueOf @(SizeOf a)
-sizeProp (ForallList _ (_ :: [a] -> Prop)) = valueOf @(SizeOf a)
 
 genInputs :: [(Prop, Action ())] -> [(Prop, Action ())]
 genInputs [] = []
@@ -77,15 +49,8 @@ checkTwo prop = do
 check :: Prop -> Module()
 check prop = do
   let testSeq = (checkTwo prop)
-
-  --globalTime :: Reg (Bit 32) <- makeReg 0
-
   always do
     testSeq
-    
-    --globalTime <== globalTime.val + 1
-    --display "Time: " (globalTime.val)
-
 
 
 twoSort :: KnownNat n => (Bit n, Bit n) -> (Bit n, Bit n)
@@ -113,8 +78,7 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 
 top :: Module ()
 top = do
-  --let propSubComm = Forall \a -> Forall \b -> Assert ((a :: Bit 4)-b.==.b-a)
-  let propSort = ForallList 4 \a -> Assert (isSorted (sort (a::[Bit 1])))
+  let propSort = ForallList 4 \a -> Assert (isSorted (sort a))
   check propSort
 
 
