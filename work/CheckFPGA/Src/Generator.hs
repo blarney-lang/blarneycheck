@@ -17,7 +17,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE IncoherentInstances #-}
 
-module CheckFPGA.Src.Generator where
+module Generator where
 
 import Blarney
 
