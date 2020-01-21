@@ -1,0 +1,32 @@
+#! /usr/bin/env bash
+
+if [ -z "$BLARNEY_ROOT" ]; then
+  echo "Please set BLARNEY_ROOT"
+  exit 1
+fi
+
+if [ -z "$1" ]; then
+  echo "Usage: blc [FILE].hs"
+  exit 1
+fi
+
+GHC="ghc --make"
+OPT="-O"
+if [ `basename $0` == "blci" ]; then
+  GHC="ghci"
+  OPT=""
+fi
+
+EXTS="-XScopedTypeVariables -XDataKinds -XTypeOperators -XTypeFamilies"
+EXTS="$EXTS -XBinaryLiterals -XNoImplicitPrelude -XFlexibleContexts"
+EXTS="$EXTS -XRebindableSyntax -XPartialTypeSignatures -XDeriveGeneric"
+EXTS="$EXTS -XDeriveAnyClass -XRecursiveDo -XBlockArguments"
+EXTS="$EXTS -XNumericUnderscores -XTypeApplications"
+EXTS="$EXTS -XDuplicateRecordFields"
+EXTS="$EXTS -XNoStarIsType"
+WARN="-Wno-partial-type-signatures"
+FLAGS="-fno-cse -fno-full-laziness"
+INC="$BLARNEY_ROOT/Haskell"
+INC_H="$BLARNEY_ROOT/Haskell/Blarney/:./"
+
+$GHC $OPT $FLAGS $WARN -cpp -I$INC_H $EXTS -i$INC $@
