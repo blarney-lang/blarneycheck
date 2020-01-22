@@ -25,7 +25,7 @@ makeAssertTestBench result =
             , increment = return (constant 1)
             }
 
-createIncrementAction :: Generator a => (TestBench, a) -> Action (Bit 1)
+createIncrementAction :: Generator a => (TestBench, a, [Int]) -> Action (Bit 1)
 createIncrementAction (tb, state) =
     case (next state) of
       ((NApply done inc):xs) -> do 
@@ -33,7 +33,8 @@ createIncrementAction (tb, state) =
                                   else (inc >> return (constant 0))
       []        -> return tb.increment
     where createIncrementAction2 (tb, []) = return (tb.increment)
-          createIncrementAction2 (tb,((NApply done inc):xs)) = 
+          createIncrementAction2 (tb, ((NApply done inc):xs)) = if(done) then (reset state >> createIncrementAction2 (tb, xs)
+                                                                else 
 
     if (nexts)
       then 
