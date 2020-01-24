@@ -18,7 +18,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Check4.Generator where
+module Check5.Generator where
 
 import Blarney
 

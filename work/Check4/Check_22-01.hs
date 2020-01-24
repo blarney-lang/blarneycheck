@@ -2,6 +2,7 @@
 
 import Blarney
 import Blarney.RAM
+import Check4.Stack
 import Check4.Generator
 
 data TestBench = TestBench 
@@ -30,7 +31,7 @@ splitProps (prop:props) = if (isAssertProp prop) then (prop:assert, sideEffect) 
 
 makeAssertTestBench :: (Bit 1) -> Action() -> TestBench
 makeAssertTestBench result dispSetValues = 
-  TestBench { runTest = when (inv result) do dispSetValues >> display "Failed the test." >> finish
+  TestBench { runTest = when (inv result) (dispSetValues >> display "Failed the test." >> finish)
             , increment = noAction
             , isDone = constant 1
             , reset = noAction
@@ -45,9 +46,9 @@ combineTestBenches mtbs = do
     combineTBs [tb] = tb
     combineTBs (tb:tbs) =
       TestBench { runTest = (when (inv (tb.isDone)) (tb.runTest)) >> (when (inv (tb2.isDone)) (tb2.runTest))
-                , increment = noAction
-                , isDone = constant 1
-                , reset = noAction
+                , increment = tb.increment >> tb2.increment
+                , isDone = tb.isDone .&. tb2.isDone
+                , reset = tb.reset >> tb2.reset
                 }
         where tb2 = combineTBs tbs
 
@@ -57,14 +58,14 @@ displayVarAndAbove (name, genVal) dispAbove = dispAbove >> display_ name "=" (pa
 
 createIncrementAction :: SizedBits a => (TestBench, Reg a) -> Action ()
 createIncrementAction (tb, register) = do
-    if (isFinal $ register.val) then 
-        if tb.isDone 
-          then
-            noAction
-          else do
-            (register <== initial)
-            tb.increment
-    else
+    if (isFinal $ register.val) then do
+      if tb.isDone 
+        then
+          noAction
+        else do
+          (register <== initial)
+          tb.increment
+    else do
       register <== (next $ register.val)
 
 
@@ -80,23 +81,22 @@ checkGen dispValues (Forall name f) = do
                    , isDone = isFinal (gen.val) .&. tb.isDone
                    , reset = (gen <== initial) >> tb.reset
   }
-checkGen _ (WhenAction _ _) = error "Checking When in Assert check"
-
+checkGen _ (WhenAction _ _) = error "When in Assert check"
 
 runSeProp :: Prop -> Action()
 runSeProp (WhenAction guard effect) = when guard effect
 
 applyPropIndexed :: KnownNat n => Integer -> [Prop] -> Bit n -> Action ()
 applyPropIndexed _ [] _ = noAction
+applyPropIndexed currVal [prop] idx = do
+  when (idx .==. (constant currVal)) (runSeProp prop)
 applyPropIndexed currVal (prop:props) idx = do
-  if(idx .==. (constant currVal)) then
-    runSeProp prop
-  else
-    applyPropIndexed (currVal+1) props idx
+  when (idx .==. (constant currVal)) (runSeProp prop)
+  applyPropIndexed (currVal+1) props idx
 
 
 check :: Action() -> [Prop] -> Integer -> Module(Bit 1)
-check reset props depth = do
+check rst props depth = do
   let (asserts, sideEffects) = splitProps props
   tb <- combineTestBenches $ mapM (checkGen noAction) asserts
   dfsChecked :: RAM (Bit 8) (Bit 5) <- makeRAM -- TODO: Replace 32 with something like Bit (log depth) Bit log(length sideEffects)
@@ -109,15 +109,20 @@ check reset props depth = do
   incrementDfs :: Reg (Bit 1) <- makeReg 0
   always do
     if (runTests.val) then do
-      runTests <== (tb.isDone)
-      tb.increment
+      display "Run tests" (currDepth.val)
       tb.runTest
+      tb.increment
+      runTests <== inv (tb.isDone)
+      when (tb.isDone) (tb.reset)
     else do
+      display "Inc depth" (currDepth.val)
       if (incrementDfs.val) then do
         if (loadedRam.val) then do
           if ((dfsChecked.out) + 1 .>=. (constant (toInteger (length sideEffects)))) then do
             if (currDepth.val) .==. zero then do
               allDone <== 1
+              display $ "All tests passed to depth " ++ (show depth)
+              finish
             else do
               store dfsChecked (currDepth.val) 0
               loadedRam <== 0
@@ -132,10 +137,11 @@ check reset props depth = do
           load dfsChecked (currDepth.val)
           loadedRam <== 1
       else do
-        if (currDepth.val .>. (constant depth)) then do
+        if (currDepth.val .>=. (constant depth)) then do
           incrementDfs <== 1
-          currDepth <== (currDepth.val) - 1
-          reset
+          when (currDepth.val .!=. zero) (currDepth <== (currDepth.val) - 1)
+          rst
+          display "Resetting" (currDepth.val)
         else do
           if (loadedRam.val) then do
             applyPropIndexed 0 sideEffects (dfsChecked.out)
@@ -178,11 +184,16 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 
 top :: Module ()
 top = do
-  let propSort = Forall "Test" \(a :: Bit 3) -> Assert (a .!=. 9)
-  done <- check noAction [propSort] 0
-  always do
-    when done
-      finish
+  stack1 :: Stack 10 (Bit 4) <- makeStack
+  stack2 :: Stack 10 (Bit 4) <- makeStack
+  let stackPush = WhenAction (1) (display "Pushing" >> (stack1.push1) 0 >> (stack2.push1) 0) -- (stack1.overflow.inv) .&. (stack2.overflow.inv)
+  let stackPop = WhenAction (1) (display "Popping" >> (stack1.pop) 1 >> (stack2.pop) 1) -- (stack1.underflow.inv) .&. (stack2.underflow.inv)
+  let propSort = Assert (stack1.top1 .==. stack2.top1)
+  done <- check ((stack1.pop) (stack1.size) >> (stack2.pop) (stack2.size)) [propSort, stackPush, stackPop] 2
+  --always do
+    --when done
+      --finish
+  return ()
 
 
 main :: IO ()
