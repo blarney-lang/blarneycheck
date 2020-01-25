@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Check5.Property where
 
@@ -13,6 +14,73 @@ data PureTestBench = PureTestBench
     , reset :: Action ()
     , failed :: Bit 1
     } deriving (Generic, Interface)
+
+data ImpureTestBench = ImpureTestBench 
+    -- Traverse one edge, until edgeDone is 1
+    { runEdge :: Action ()
+    , edgeDone :: Bit 1
+    -- When all possibilities to current depth exhausted
+    -- depthDone = 1 & incMaxDepth must be called
+    , incMaxDepth :: Action ()
+    , depthDone :: Bit 1
+    -- Get the current max depth we are testing
+    , currMaxDepth :: Bit 16
+    -- Display last executed sequence, keep running until depthDone
+    , displayFail :: Action ()
+    } deriving (Generic, Interface)
+
+{-|
+  Created for WhenActions Props, used as the interface to increase the depth of the sequential search
+-}
+data ImpureEdge = ImpureEdge
+    -- Used to traverse from one depth to another.
+    -- Must be called on all ImpureEdges, not just the one being executed,
+    -- as all use a Queue to track the inputs at the current depth and so all
+    -- need this Action to be called to proceed to the next depth
+    -- Bit 1 indicated if this one should run it's impure Action
+    -- (should only be set on one IpureEdge at a time)
+    { increaseDepthExec :: Bit 1 -> Action()
+    , depthIncDone :: Bit 1
+
+    -- Used during Increment phase: Increment bit -> Reset bit -> IncAction
+    , increaseDepthInc :: Bit 1 -> Bit 1 -> Action()
+    , edgeExhaused :: Bit 1
+
+    -- For displaying the edge upon finding failing sequence
+    -- Bit 1 is for selecting edge to display
+    , displayEdge :: (Bit 1) -> Action ()
+    
+    -- Usually includes enqueueing one extra element in depth queue
+    , increaseMaxDepth :: Action ()
+    }
+
+-- Given a Bit number (idx) selecting an element of [a] only select ([a])[idx]
+class Selectable a where
+  sel :: KnownNat n => Bit n -> [a] -> a
+
+-- Always execute all actions, relevant Bits should already be selected
+instance Selectable (Action ()) where
+  sel _ actions = runAll actions
+    where runAll [] = noAction
+          runAll [a] = a
+          runAll (a:as) = a >> (runAll as)
+
+-- Only return true if selected bit is true
+instance Selectable (Bit 1) where
+  sel idx elems = selIdx elems 0
+    where selIdx [] _ = 0
+          selIdx (e:es) currIdx = (e .&. (idx .==. (constant currIdx))) .|. selIdx es (currIdx + 1)
+
+-- Only apply true if the given bitVal is true and also only to elem[idx]
+instance Selectable b => Selectable (Bit 1 -> b) where
+  sel idx elems = \bitVal -> sel idx (applyIdx elems 0 bitVal)
+    where applyIdx [] _ _ = []
+          applyIdx (e:es) currIdx bitVal = do
+            let appliedElem = e $ bitVal .&. (idx .==. (constant currIdx))
+            let appliedAll = applyIdx es (currIdx + 1) bitVal
+            appliedElem:appliedAll
+
+
 
 data CycleCommand = CycleCommand ((Bit 1) -> (Bit 1) -> (Bit 1) -> Action (), Bit 1, Action())
                             -- Run Impure -- Increment -- Reset --        -- isFull -- displayOnFail
@@ -36,7 +104,7 @@ splitProps (prop:props) = if (isAssertProp prop) then (prop:assert, sideEffect) 
 
 makeAssertTestBench :: String -> (Bit 1) -> Action() -> PureTestBench
 makeAssertTestBench name result dispSetValues = 
-  PureTestBench { runTest = when (inv result) (dispSetValues >> (display "Assert \"" name "\" failed."))
+  PureTestBench { runTest = when (inv result) (dispSetValues >> (display "Assert \"" name "\" failed. ***"))
                 , increment = noAction
                 , isDone = constant 1
                 , reset = noAction
@@ -80,8 +148,8 @@ createIncrementAction ((isDone, increment), register) = do
 {-Create the base TestBench here-}
 checkGenPure :: Prop -> Module (PureTestBench)
 checkGenPure prop = case prop of
-    (Assert _ _) -> cgp noAction prop
-    _            -> cgp (display_ "Set ") prop
+    (Assert _ _) -> cgp (display_ "*** ") prop
+    _            -> cgp (display_ "*** Set ") prop
   where cgp dispValues (Assert name p) = do
           return (makeAssertTestBench name p dispValues)
         cgp dispValues (Forall name f) = do
@@ -102,119 +170,195 @@ checkGenPure prop = case prop of
 
 
 
-                                                                        -- Init -- Increment -- OnFail -- allDone
-makeImpureTestBench :: Int -> Bit 16 -> Action() -> [CycleCommand] -> Module(Action(), Action(), Action(), Bit 1)
-makeImpureTestBench maxDepth currMaxDepth rst impureEdges = do
-  let maxDepthSafe = max maxDepth 1
-  let impureEdgesLenBit = (constant (toInteger (length impureEdges)))
-  queueOfEdgesTaken :: Queue (Bit 16) <- makeSizedQueue maxDepthSafe
-  currDepth :: Reg (Bit 16) <- makeReg 0
-  incrementPhase :: Reg (Bit 1) <- makeReg 0
-  amIncrementing :: Reg (Bit 1) <- makeReg 1
+makeImpureTestBench :: Int -> Action() -> [Prop] -> Module(ImpureTestBench)
+makeImpureTestBench maxDepth rst impureProps = do
+  if (maxDepth == 0 || length impureProps == 0) then
+    return ImpureTestBench {
+      runEdge = noAction
+    , edgeDone = 1
+    , incMaxDepth = noAction
+    , depthDone = 1
+    , currMaxDepth = 0
+    , displayFail = noAction
+    }
+  else do
+    let impureEdgesLenBit = (constant (toInteger (length impureProps)))
 
-  allDone :: Reg (Bit 1) <- makeReg 0
-  let incrementAction = do {
-    if ((currMaxDepth .==. 0) .|. (impureEdgesLenBit .==. 0)) then do
-      allDone <== 1
-    else do
-      if (currDepth.val + 1 .>=. currMaxDepth) then do
-        incrementPhase <== (inv (incrementPhase.val))
-        currDepth <== 0
-        if (incrementPhase.val) then rst
-        else (amIncrementing <== 1)
-      else do
-        currDepth <== (currDepth.val) + 1
-      queueOfEdgesTaken.deq
-      if(incrementPhase.val) then do
-        if (amIncrementing.val) then do
-          if (getCurrEdgeFull impureEdges (queueOfEdgesTaken.first)) then do
-            cycleAllWithSelectIncAndRst impureEdges (queueOfEdgesTaken.first) 0 0 1
-            if((queueOfEdgesTaken.first) + 1 .>=. impureEdgesLenBit) then do
-              --display "Inc Phase final"
-              when (currDepth.val + 1 .>=. currMaxDepth) (allDone <== 1) -- If am the final one then finish
-              (queueOfEdgesTaken.enq) 0
-            else do
-              --display "Inc Phase final val"
-              (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
-              amIncrementing <== 0
+    queueOfEdgesTaken :: Queue (Bit 16) <- makeSizedQueue maxDepth
+    edgesWithSelect <- propsToEdgesWithSelect maxDepth impureProps
+    let edges = edgesWithSelect (queueOfEdgesTaken.first)
+
+    currDepth <- makeReg 0
+    depthTestedTo <- makeReg 0
+    currMaxDepthReg <- makeReg 1
+
+    -- 0 is execute phase, 1 is increment phase
+    phase :: Reg (Bit 1) <- makeReg 0
+
+    -- Set to 1 to run a round of Pure Prop testing before
+    -- continuing to runEdge
+    runPureTests :: Reg (Bit 1) <- makeReg 1
+    -- In increment phase stop incrementing as soon as
+    -- we hit an edge that we can increment
+    amIncrementing :: Reg (Bit 1) <- makeReg 1
+
+    -- Set to 1 to indicate we have tested all at this max depth
+    currMaxDepthDone :: Reg (Bit 1) <- makeReg 0
+
+    -- Cycle depth to 0 before displaying failing sequence
+    displayFailingEdges :: Reg (Bit 1) <- makeReg 0
+
+    -- Is 1 when all at currDepth are tested (and should go back to testing the first prop)
+    let currDepthDone = (queueOfEdgesTaken.first) + 1 .>=. impureEdgesLenBit
+    -- Is 1 when we have reached the curr max depth
+    let isAtFinalDepth = currDepth.val + 1 .>=. currMaxDepthReg.val
+    return ImpureTestBench {
+      runEdge = do
+        -- Check if currently running edge, then wait until done.
+        -- Or if am finished incrementing and waiting for depth increase
+        if (edges.depthIncDone.inv .|. currMaxDepthDone.val) then
+          noAction
+        else do
+        -- If am at max depth then reset, otherwise increment
+        -- IMPORTANT: inc or exec phase will still run after this
+        if isAtFinalDepth then do
+          phase <== phase.val.inv
+          currDepth <== 0
+          -- If switching to exec phase then reset state
+          if (phase.val) then
+            rst
+          -- If switching to increment phase, start inc & disable testing
           else do
-            --display "Inc Phase inc val"
-            cycleAllWithSelectIncAndRst impureEdges (queueOfEdgesTaken.first) 0 1 0
-            (queueOfEdgesTaken.enq) (queueOfEdgesTaken.first)
-            amIncrementing <== 0
+            runPureTests <== 0
+            amIncrementing <== 1
+        else
+          (currDepth <== (currDepth.val) + 1)
+        -- Always want to cycle depth, since we increased it above
+        queueOfEdgesTaken.deq
+        -- Split on increment and execute phase
+        if(phase.val) then do
+          -- If am still incrementing then increment edge if it isn't exhaused, otherwise reset it
+          (edges.increaseDepthInc) (edges.edgeExhaused.inv .&. amIncrementing.val) (edges.edgeExhaused .&. amIncrementing.val)
+
+          -- Cases for incrementing my current edge counter:
+          -- When current edge is exhausted and am at the end of all edges, go back to 0
+          if (amIncrementing.val .&. edges.edgeExhaused .&. currDepthDone) then
+            ((queueOfEdgesTaken.enq) 0)
+          -- When edge is exhausted but I can still go to next edge
+          else if (amIncrementing.val .&. edges.edgeExhaused) then
+            ((queueOfEdgesTaken.enq) $ (queueOfEdgesTaken.first) + 1)
+          else
+          -- Edge is not exhausted so either got incremented or we aren't incrementing -> do nothing
+            ((queueOfEdgesTaken.enq) (queueOfEdgesTaken.first))
+
+          -- Since currDepthDone isn't done we mustv'e incremented an edge, so don't increment at next depth
+          when (inv currDepthDone) (amIncrementing <== 0)
+          
+          -- If I've reached the current max depth, and incremented all of the edges here, but still want to increment then am done
+          when (amIncrementing.val .&. currDepthDone .&. isAtFinalDepth) (currMaxDepthDone <== 1)
         else do
-          --display "Inc Phase no inc"
-          cycleAllWithSelectIncAndRst impureEdges (queueOfEdgesTaken.first) 0 0 0
+          -- Start Pure Tests when we are at an untested depth
+          when (currDepth.val + 1 .>=. depthTestedTo.val) (runPureTests <== 1)
+          (edges.increaseDepthExec) 1
           (queueOfEdgesTaken.enq) (queueOfEdgesTaken.first)
-      else do
-        --display "Exec"
-        cycleAllWithSelectIncAndRst impureEdges (queueOfEdgesTaken.first) 1 0 0
+    , edgeDone = (runPureTests.val) .&. edges.depthIncDone
+    -- When all possibilities to current depth exhausted
+    -- depthDone = 1 & incMaxDepth must be called
+    , incMaxDepth = do
+        -- Enqueue to queues
+        edges.increaseMaxDepth
+        (queueOfEdgesTaken.enq) 0
+        -- Initialise values
+        amIncrementing <== 0
+        depthTestedTo <== currMaxDepthReg.val
+        currMaxDepthReg <== currMaxDepthReg.val + 1
+        currMaxDepthDone <== 0
+    , depthDone = currMaxDepthDone.val
+    -- Get the current max depth we are testing
+    , currMaxDepth = currMaxDepthReg.val
+    -- Display last executed sequence, keep running until depthDone
+    , displayFail = do
+        -- If am finished displaying, skip
+        if (currMaxDepthDone.val) then
+          noAction
+        else do
+        if isAtFinalDepth then do
+          if(displayFailingEdges.val) then do
+            currMaxDepthDone <== 1
+          else do
+            displayFailingEdges <== 1
+            currDepth <== 0
+            display (depthTestedTo.val + 1) " impure actions taken:"
+        else
+          (currDepth <== (currDepth.val) + 1)
+        -- Display failing edge if have reset back to depth 0
+        (edges.displayEdge) (displayFailingEdges.val)
+        -- Always cycle edges taken, and edges
+        queueOfEdgesTaken.deq
         (queueOfEdgesTaken.enq) (queueOfEdgesTaken.first)
+        (edges.increaseDepthInc) 0 0
+    }
+
+propsToEdgesWithSelect :: KnownNat n => Int -> [Prop] -> Module(Bit n -> ImpureEdge)
+propsToEdgesWithSelect maxDepth props = do
+  allEdges <- propsToEdges props
+  return (\idx -> 
+    ImpureEdge {
+      increaseDepthExec = sel idx (map increaseDepthExec allEdges)
+    , depthIncDone = sel idx (map depthIncDone allEdges)
+    , increaseDepthInc = sel idx (map increaseDepthInc allEdges)
+    , edgeExhaused = sel idx (map edgeExhaused allEdges)
+    , displayEdge = sel idx (map displayEdge allEdges)
+    , increaseMaxDepth = sel idx (map increaseMaxDepth allEdges)
+  })
+  where propsToEdges [] = return []
+        propsToEdges (prop:xs) = do
+          edges <- propsToEdges xs
+          edge <- (makeEdgeFromImpureProp maxDepth prop)
+          return (edge:edges)
+
+makeEdgeFromImpureProp :: Int -> Prop -> Module(ImpureEdge)
+makeEdgeFromImpureProp _ (WhenAction name guardAction impureAction) =
+  return ImpureEdge {
+      increaseDepthExec = \exec -> when (exec .&. guardAction) impureAction
+    , depthIncDone = 1
+    , increaseDepthInc = \_ -> \_ -> noAction
+    , edgeExhaused = 1
+    , displayEdge = \disp -> when disp (display name)
+    , increaseMaxDepth = noAction
   }
-  displayFail :: Reg (Bit 1) <- makeReg 0
-  let failAction = do {
-    if (currDepth.val .>=. currMaxDepth) then do
-      if(displayFail.val) then do
-        allDone <== 1
-      else do
-        display "Impure actions taken:"
-        displayFail <== 1
-        currDepth <== 0
-    else do
-      queueOfEdgesTaken.deq
-      (queueOfEdgesTaken.enq) (queueOfEdgesTaken.first)
-      currDepth <== (currDepth.val) + 1
-      cycleAllWithSelectIncAndRst impureEdges (queueOfEdgesTaken.first) 0 0 0
-      when (displayFail.val) (displaySelectFail impureEdges (queueOfEdgesTaken.first))
-  }
-  return (((queueOfEdgesTaken.enq) 0) >> (incrementPhase <== 0) >> (allDone <== 0), incrementAction, failAction, allDone.val)
-  
-getCurrEdgeFull :: [CycleCommand] -> (Bit 16) -> Bit 1
-getCurrEdgeFull impureEdges selectIndex = gcef impureEdges 0
-  where gcef [] _ = 0
-        gcef ((CycleCommand (_, full, _)):ies) currIndex = ((selectIndex .==. (constant currIndex)) .&. full) .|. (gcef ies (currIndex + 1))
-
-
-cycleAllWithSelectIncAndRst :: [CycleCommand] -> (Bit 16) -> Bit 1 -> Bit 1 -> Bit 1 -> Action ()
-cycleAllWithSelectIncAndRst impureEdges selectIndex exec inc rst = cawsiar impureEdges 0
-  where cawsiar [] _ = noAction
-        cawsiar ((CycleCommand (cycle, _, _)):ies) currIndex = cycle (isSelect .&. exec) (isSelect .&. inc) (isSelect .&. rst) >> (cawsiar ies (currIndex + 1))
-          where isSelect = (selectIndex .==. (constant currIndex))
-
-displaySelectFail :: [CycleCommand] -> (Bit 16) -> Action ()
-displaySelectFail impureEdges selectIndex = dsf impureEdges 0
-  where dsf [] _ = noAction
-        dsf ((CycleCommand (_, _, failAct)):ies) currIndex = when isSelect failAct >> (dsf ies (currIndex + 1))
-          where isSelect = (selectIndex .==. (constant currIndex))
-
-
-makeBranchFromImpure :: Int -> Prop -> Module(Action (), CycleCommand)
-makeBranchFromImpure _ (WhenAction name guard impureAction) = 
-  return (noAction, CycleCommand (\exec -> \_ -> \_ -> do
-    when (exec .&. guard) impureAction
-    , 1,
-    display name))
-makeBranchFromImpure maxDepth (Forall name f) = do
-  let maxDepthSafe = max maxDepth 1
-  queueOfElementsAppliedAtDepths <- makeSizedQueue maxDepthSafe
-  (init, CycleCommand (cycle, full, dispFail)) <- makeBranchFromImpure maxDepth (f (queueOfElementsAppliedAtDepths.first))
-  return ((queueOfElementsAppliedAtDepths.enq) initial >> init,
-    CycleCommand (\exec -> \inc -> \rst -> do
+makeEdgeFromImpureProp maxDepth (Forall name f) = do
+  if (maxDepth == 0) then do
+    let appliedVal = initial
+    ie <- makeEdgeFromImpureProp maxDepth (f appliedVal)
+    return ImpureEdge {
+        increaseDepthExec = \exec -> (ie.increaseDepthExec) exec
+      , depthIncDone = ie.depthIncDone
+      , increaseDepthInc = \inc -> \rst -> (ie.increaseDepthInc) inc rst
+      , edgeExhaused = ie.edgeExhaused
+      , displayEdge = \disp -> (when disp (display_ "Set " name "=" (pack appliedVal) " & ")) >> (ie.displayEdge $ disp)
+      , increaseMaxDepth = ie.increaseMaxDepth
+    }
+  else do
+    queueOfElementsAppliedAtDepths <- makeSizedQueue maxDepth
+    let amFinal = isFinal (queueOfElementsAppliedAtDepths.first)
+    let cycleQueue = \inc -> \rst -> do {
       queueOfElementsAppliedAtDepths.deq
-      if inc then do
-        if (isFinal (queueOfElementsAppliedAtDepths.first)) then do
-          (queueOfElementsAppliedAtDepths.enq) initial
-          (cycle exec inc rst)
-        else do
-          (queueOfElementsAppliedAtDepths.enq) (next (queueOfElementsAppliedAtDepths.first))
-          (cycle exec 0 rst)
-      else do
-        (cycle exec inc rst)
-        if rst then do
-          (queueOfElementsAppliedAtDepths.enq) initial
-        else do
+    ; if (rst .|. (inc .&. amFinal)) then
+        (queueOfElementsAppliedAtDepths.enq) initial
+      else
+        if inc then
+          (queueOfElementsAppliedAtDepths.enq) (next $ queueOfElementsAppliedAtDepths.first)
+        else
           (queueOfElementsAppliedAtDepths.enq) (queueOfElementsAppliedAtDepths.first)
-      , full .&. isFinal (queueOfElementsAppliedAtDepths.first),
-      (display_ "Set " name "=" (pack (queueOfElementsAppliedAtDepths.first)) " & ") >> dispFail
-        ))
-makeBranchFromImpure _ (Assert _ _) = error "Pure in Impure method"
+    }
+    ie <- makeEdgeFromImpureProp maxDepth (f $ queueOfElementsAppliedAtDepths.first)
+    return ImpureEdge {
+        increaseDepthExec = \exec -> cycleQueue 0 0 >> (ie.increaseDepthExec) exec
+      , depthIncDone = ie.depthIncDone
+      , increaseDepthInc = \inc -> \rst -> cycleQueue inc rst >> (ie.increaseDepthInc) (inc .&. amFinal) rst
+      , edgeExhaused = amFinal .&. ie.edgeExhaused
+      , displayEdge = \disp -> (when disp (display_ "Set " name "=" (pack $ queueOfElementsAppliedAtDepths.first) " & ")) >> (ie.displayEdge $ disp)
+      , increaseMaxDepth = (queueOfElementsAppliedAtDepths.enq) initial >> ie.increaseMaxDepth
+    }
+makeEdgeFromImpureProp _ (Assert _ _) = error "Pure in Impure method"
