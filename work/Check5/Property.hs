@@ -303,7 +303,7 @@ makeImpureTestBench maxDepth rst impureProps = do
           else do
             displayFailingEdges <== 1
             currDepth <== 0
-            display (depthTestedTo.val + 1) " impure actions taken:"
+            display "Impure actions taken (%0d):" (depthTestedTo.val + 1)
         else
           (currDepth <== (currDepth.val) + 1)
         -- Display failing edge if have reset back to depth 0

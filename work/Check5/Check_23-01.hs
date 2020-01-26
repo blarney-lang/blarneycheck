@@ -83,8 +83,9 @@ top = do
   stack2 :: Stack 10 (Bit 3) <- makeStack
   let stackPush = Forall "X" \x -> (WhenAction "Push" (1) ((stack1.push1) x >> (stack2.push1) x)) -- (stack1.overflow.inv) .&. (stack2.overflow.inv)
   let stackPop = WhenAction "Pop" (1) ((stack1.pop) 1 >> (stack2.pop) 1) -- (stack1.underflow.inv) .&. (stack2.underflow.inv)
-  let propSort = Assert "Stack top equal" (stack1.top1 - stack2.top2 .<. 7)
-  done <- check ((stack1.pop) (stack1.size) >> (stack2.pop) (stack2.size)) [propSort, stackPush, stackPop] 3
+  let propSort = Forall "Y" \(y :: Bit 2) -> Assert "Stack top equal" (stack1.top1 - stack2.top2 .<. 7)
+  --let propSort = Assert "Stack top equal" ((zeroExtend $ stack1.top2) + (zeroExtend $ stack1.top1) .<. (constant 14 :: Bit 4))
+  done <- check ((stack1.pop) (stack1.size) >> (stack2.pop) (stack2.size)) [propSort, stackPush, stackPop] 4
   --always do
     --when done
       --finish
