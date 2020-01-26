@@ -4,6 +4,8 @@ import Blarney
 import Check5.Property
 import Check5.Stack
 
+--import Blarney.Queue
+
 
 check :: Action() -> [Prop] -> Int -> Module(Bit 1)
 check rst props depth = do
@@ -12,24 +14,19 @@ check rst props depth = do
   impureTB <- makeImpureTestBench depth rst sideEffects
 
   globalTime :: Reg (Bit 32) <- makeReg 0
-  runPureTests :: Reg (Bit 1) <- makeReg 1
+  pureTestsDone :: Reg (Bit 1) <- makeReg 0
   displayingFail :: Reg (Bit 1) <- makeReg 0
   allDone :: Reg (Bit 1) <- makeReg 0
-  always do
+  _ <- always do
     if (pureTB.failed .|. displayingFail.val) then do
       displayingFail <== 1
-      when (runPureTests.val) do
+      when (pureTestsDone.val.inv) do
         pureTB.runTest
-        runPureTests <== 0
+        pureTestsDone <== 1
       impureTB.displayFail
       when (impureTB.depthDone) finish
     else do
-      if (runPureTests.val) then do
-        pureTB.runTest
-        pureTB.increment
-        runPureTests <== inv (pureTB.isDone)
-        when (pureTB.isDone) (pureTB.reset)
-      else do
+      if(impureTB.edgeDone.inv .|. pureTestsDone.val) then do
         if (impureTB.depthDone) then do
           _ <- display "--All tests passed to depth " (impureTB.currMaxDepth) "--"
           if ((impureTB.currMaxDepth) .>=. (constant (toInteger depth))) then do
@@ -39,8 +36,17 @@ check rst props depth = do
             impureTB.incMaxDepth
         else do
           impureTB.runEdge
-          runPureTests <== impureTB.edgeDone
+          pureTestsDone <== 0
+          display "-ImpureEdge"
+      else do
+        pureTB.runTest
+        pureTB.increment
+        pureTestsDone <== pureTB.isDone
+        when (pureTB.isDone) (pureTB.reset)
+        display "+PureCheck"
+        
     globalTime <== globalTime.val + 1
+    display "------TICK------"
       --display "Time: " (globalTime.val)
       --when (tb.isDone) do
         --display "Test pass"
@@ -82,6 +88,62 @@ top = do
   --always do
     --when done
       --finish
+      
+  {-    
+  queueOfEdgesTaken :: Queue (Bit 16) <- makeSizedQueue 3
+  let test =
+        Seq [
+          Action do
+            (queueOfEdgesTaken.enq) 8
+        , Action do
+            --(queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            queueOfEdgesTaken.deq
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) 0
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            queueOfEdgesTaken.deq
+            (queueOfEdgesTaken.enq) ((queueOfEdgesTaken.first) + 1)
+            display (queueOfEdgesTaken.first)
+        , Action do
+            finish
+        ]
+
+  runOnce test-}
   return ()
 
 
