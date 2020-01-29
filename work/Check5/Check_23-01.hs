@@ -80,7 +80,7 @@ checkCheck = do
   stackSpec :: Stack (Bit 3) <- makeStackSpec 10
   stack :: Stack (Bit 3) <- makeStack 10
 
-  let stackPush = Impure "Push" \x -> (1 :: Bit 1, (stackSpec.push) x >> (stack.push) x)
+  let stackPush = Impure "Push" (2 :: Int, \[x, y] -> (1 :: Bit 1, (stackSpec.push) x >> (stack.push) y))
   let stackPop =  Impure "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv, (stackSpec.pop) >> (stack.pop))
   --let stackPushPopNop =  Impure "Pop" \x -> (stack.isEmpty.inv, (stack.push) x >> (stack.pop))
 

@@ -6,6 +6,8 @@ module Check5.Property where
 
 import Blarney
 import Blarney.Queue
+import Check5.PureProp
+import Check5.ImpureProp
 import Check5.Generator
 
 data PureTestBench = PureTestBench 
@@ -29,28 +31,6 @@ data ImpureTestBench = ImpureTestBench
     -- Display last executed sequence, keep running until depthDone
     , displayFailImpure :: Action ()
     } deriving (Generic, Interface)
-
-{-|
-  Created for WhenActions Props, used as the interface to increase the depth of the sequential search
--}
-data ImpureEdge = ImpureEdge
-    -- Used to traverse from one depth to another.
-    -- Must be called on all ImpureEdges, not just the one being executed,
-    -- as all use a Queue to track the inputs at the current depth and so all
-    -- need this Action to be called to proceed to the next depth
-    -- First Bit 1 sets if this action should be displayed
-    -- Second Bit 1 indicated if this edge should run it's impure Action
-    -- (should only be set on one IpureEdge at a time)
-    { increaseDepthExec :: Bit 1 -> Bit 1 -> Action()
-    , depthIncDone :: Bit 1
-
-    -- Used during Increment phase: Increment bit -> Reset bit -> IncAction
-    , increaseDepthInc :: Bit 1 -> Bit 1 -> Action()
-    , edgeExhaused :: Bit 1
-    
-    -- Usually includes enqueueing one extra element in depth queue
-    , increaseMaxDepth :: Action ()
-    }
 
 -- Given a Bit number (idx) selecting an element of [a] only select ([a])[idx]
 class Selectable a where
@@ -99,142 +79,6 @@ splitProps ((prop@(Pure _ _)):props) =
 splitProps ((prop@(Impure _ _)):props) =
   let (assert, sideEffect) = splitProps props
   in (assert, prop:sideEffect)
-
-
--- Class of Pure Props
-class PureProp a where
-  pPropToTB :: a -> Module(PureTestBench)
-
-instance PureProp (Bit 1) where
-  pPropToTB result = 
-    return PureTestBench {
-      increment = noAction
-      , isDone = 1
-      , reset = noAction
-      , failed = inv result
-      , displayFailPure = when (inv result) (display "failed! ***")
-    }
-
-instance (Generator a, PureProp b) => PureProp (a -> b) where
-  pPropToTB f = do
-    gen <- makeReg initial
-    tb <- pPropToTB (f $ gen.val)
-    let incrementAction = do {
-      if (isFinal $ gen.val) then do
-        if tb.isDone
-          then
-            noAction
-          else do
-            (gen <== initial)
-            tb.increment
-      else do
-        gen <== (next $ gen.val)
-    }
-    return PureTestBench { 
-      increment = incrementAction
-      , isDone = isFinal (gen.val) .&. tb.isDone
-      , reset = (gen <== initial) >> tb.reset
-      , failed = tb.failed
-      , displayFailPure = when (tb.failed) (display_ (pack $ gen.val) " ") >> (tb.displayFailPure)
-    }
-{-
-instance (PureProp a) => PureProp [a] where
-  pPropToTB [] = error "Must specify at least one Pure Property to test!"
-  pPropToTB [x] = pPropToTB x
-  pPropToTB (x:xs) = do
-    tb <- pPropToTB x
-    tbOthers <- pPropToTB xs
-    return PureTestBench { increment = tb.increment >> tbOthers.increment
-                         , isDone = tb.isDone .&. tbOthers.isDone
-                         , reset = tb.reset >> tbOthers.reset
-                         , failed = tb.failed .|. tbOthers.failed
-                         , displayFailPure = tb.displayFailPure >> tbOthers.displayFailPure
-                         }
--}
-
--- Class of Impure Props
-class ImpureProp a where
-  iPropToTB :: Int -> a -> Module(ImpureEdge)
-
-instance ImpureProp (Bit 1, Action()) where
-  iPropToTB _ (guardAct, impureAction) =
-    return ImpureEdge {
-        increaseDepthExec = \disp -> \exec -> do
-          when (exec .&. guardAct) impureAction
-          when (disp) (display "\t[Executed: " guardAct "]")
-      , depthIncDone = 1
-      , increaseDepthInc = \_ -> \_ -> noAction
-      , edgeExhaused = 1
-      , increaseMaxDepth = noAction
-    }
-
-instance (Generator a, ImpureProp b) => ImpureProp (a -> b) where
-  iPropToTB maxDepth f =
-    if (maxDepth == 0) then do
-      let appliedVal = initial
-      ie <- iPropToTB maxDepth (f appliedVal)
-      return ImpureEdge {
-          increaseDepthExec = \disp -> \exec -> do
-            when disp (display_ (pack appliedVal) " ")
-            (ie.increaseDepthExec) disp exec
-        , depthIncDone = ie.depthIncDone
-        , increaseDepthInc = ie.increaseDepthInc
-        , edgeExhaused = ie.edgeExhaused
-        , increaseMaxDepth = ie.increaseMaxDepth
-      }
-    else do
-      currMaxDepthReg :: Reg (Bit 16) <- makeReg 0
-      let useQueue = currMaxDepthReg.val .>. 1
-      queueOfElementsAppliedAtDepths :: Bits a => Queue a <- makeSizedQueue maxDepth
-      regOfEdgeTaken <- makeReg initial
-      let currVal = unpack (mux useQueue (pack $ queueOfElementsAppliedAtDepths.first, pack $ regOfEdgeTaken.val))
-      let cycleDeq = when useQueue (queueOfElementsAppliedAtDepths.deq)
-      let cycleEnq = \newVal -> do {
-        if useQueue then ((queueOfElementsAppliedAtDepths.enq) newVal)
-        else (regOfEdgeTaken <== newVal)
-      }
-
-      let amFinal = isFinal currVal
-      let cycleQueue = \inc -> \rst -> do {
-        cycleDeq
-      ; if (rst .|. (inc .&. amFinal)) then
-          cycleEnq initial
-        else
-          if inc then
-            cycleEnq (next currVal)
-          else
-            cycleEnq currVal
-      }
-      ie <- iPropToTB maxDepth (f currVal)
-      return ImpureEdge {
-          increaseDepthExec = \disp -> \exec -> do
-            when disp (display_ (pack currVal) " ")
-            cycleQueue 0 0
-            (ie.increaseDepthExec) disp exec
-        , depthIncDone = ie.depthIncDone
-        , increaseDepthInc = \inc -> \rst -> cycleQueue inc rst >> (ie.increaseDepthInc) (inc .&. amFinal) rst
-        , edgeExhaused = amFinal .&. ie.edgeExhaused
-        , increaseMaxDepth = do
-            currMaxDepthReg <== currMaxDepthReg.val + 1
-            cycleEnq initial
-            ie.increaseMaxDepth
-      }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
