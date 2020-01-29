@@ -3,7 +3,6 @@
 import Blarney
 import Check5.Property
 import Check5.Stack
-import Check5.StackGolden
 
 --import Blarney.Queue
 
@@ -34,7 +33,7 @@ check rst props depth = do
         else do
           impureTB.runEdge
           pureTestsDone <== 0
-          display "-ImpureEdge"
+          --display "-ImpureEdge"
       else do
         pureTB.runTest
         pureTB.increment
@@ -42,10 +41,10 @@ check rst props depth = do
         when (pureTB.isDone) (pureTB.reset)
         when (pureTB.failed) do
           displayingFail <== 1
-        display "+PureCheck"
+        --display "+PureCheck"
         
       globalTime <== globalTime.val + 1
-      display "------TICK------"
+      --display "------TICK------"
       --display "Time: " (globalTime.val)
       --when (tb.isDone) do
         --display "Test pass"
@@ -76,20 +75,18 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 
 
 
-top :: Module ()
-top = do
-  stackGold :: Check5.StackGolden.Stack 10 (Bit 3) <- Check5.StackGolden.makeStack
-  stackGold2 :: Check5.StackGolden.Stack 10 (Bit 3) <- Check5.StackGolden.makeStack
-  stack :: Check5.Stack.Stack (Bit 3) <- Check5.Stack.makeStack 10
-  let stackPush = Forall "X" \x -> (WhenAction "Push" (1) ((stackGold.push1) x >> (stackGold2.push1) x >> (stack.push) x)) -- (stack1.overflow.inv) .&. (stack2.overflow.inv)
-  let stackPop = WhenAction "Pop" (1) ((stackGold.Check5.StackGolden.pop) 1 >> (stackGold2.Check5.StackGolden.pop) 1 >> (stack.Check5.Stack.pop)) -- (stack1.underflow.inv) .&. (stack2.underflow.inv)
-  --let propSTS = Forall "Y" \(y :: Bit 2) -> Assert "Stack 2 top small" (stack1.top1 - stack2.top2 .<. 7)
+checkCheck :: Module ()
+checkCheck = do
+  stackSpec :: Stack (Bit 3) <- makeStackSpec 10
+  stack :: Stack (Bit 3) <- makeStack 10
+  let stackPush = Forall "X" \x -> (WhenAction "Push" (1) ((stackSpec.push) x >> (stack.push) x))
+  let stackPop = WhenAction "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv) ((stackSpec.pop) >> (stack.pop))
 
-  --let propSTSS = Assert "Stack top sum small" ((zeroExtend $ stack1.top2) + (zeroExtend $ stack1.top1) .<. (constant 14 :: Bit 4))
-  --let propStackTop1Eq = Assert "Stack top equal" (stackGold.top1 .==. stack.Check5.Stack.top) (display_ "Gold top " (stackGold.top1) ", " >> (display_ "Other top " (stack.Check5.Stack.top) ", " ))
-  let propStackTop2Eq = Assert "Stack top2 equal" (stackGold.top1 .==. stackGold2.top1) noAction
 
-  done <- check ((stackGold.Check5.StackGolden.pop) (stackGold.size) >> (stack.clear)) [propStackTop2Eq, stackPush, stackPop] 3
+  let propStackTopEq = Assert "Stack top equal" (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top)) (display_ "Gold top " (stackSpec.top) ", " >> (display_ "Other top " (stack.top) ", " ))
+
+  let rst = (stackSpec.clear) >> (stack.clear)
+  done <- check rst [propStackTopEq, stackPush, stackPop] 3
   
   --always do
     --when done
@@ -154,4 +151,4 @@ top = do
 
 
 main :: IO ()
-main = writeVerilogTop Main.top "top" "Out-Verilog/"
+main = writeVerilogTop checkCheck "top" "Out-Verilog/"

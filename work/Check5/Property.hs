@@ -241,7 +241,7 @@ makeImpureTestBench maxDepth rst impureProps = do
           if (phase.val) then do
             rst
             when (depthTestedTo.val .==. 0) (runPureTests <== 1)
-            display("Reset")
+            --display("Reset")
           -- If switching to increment phase, start inc & disable testing
           else do
             amIncrementing <== 1
@@ -252,7 +252,7 @@ makeImpureTestBench maxDepth rst impureProps = do
         -- Split on increment and execute phase
         if(phase.val) then do
           runPureTests <== 0
-          display "*IncPhase"
+          --display "*IncPhase"
           -- If am still incrementing then increment edge if it isn't exhaused, otherwise reset it
           (edges.increaseDepthInc) (edges.edgeExhaused.inv .&. amIncrementing.val) (edges.edgeExhaused .&. amIncrementing.val)
 
@@ -273,8 +273,8 @@ makeImpureTestBench maxDepth rst impureProps = do
           -- If I've reached the current max depth, and incremented all of the edges here, but still want to increment then am done
           when (amIncrementing.val .&. currDepthDone .&. isAtFinalDepth) (currMaxDepthDone <== 1)
         else do
-          display "^ExecPhase"
-          (edges.displayEdge) 1
+          --display "^ExecPhase"
+          --(edges.displayEdge) 1
           -- Start Pure Tests when we are at an untested depth
           when (currDepth.val .>=. depthTestedTo.val) (runPureTests <== 1)
           (edges.increaseDepthExec) 1
@@ -288,7 +288,7 @@ makeImpureTestBench maxDepth rst impureProps = do
         cycleEnq 0
         -- Initialise values
         amIncrementing <== 0
-        depthTestedTo <== 0--currMaxDepthReg.val
+        depthTestedTo <== currMaxDepthReg.val
         currMaxDepthReg <== currMaxDepthReg.val + 1
         currMaxDepthDone <== 0
     , depthDone = currMaxDepthDone.val
