@@ -87,13 +87,13 @@ data CycleCommand = CycleCommand ((Bit 1) -> (Bit 1) -> (Bit 1) -> Action (), Bi
                             -- Run Impure -- Increment -- Reset --        -- isFull -- displayOnFail
 
 data Prop where
-  Assert :: String -> (Bit 1) -> Prop
+  Assert :: String -> (Bit 1) -> Action() -> Prop
   Forall :: Generator a => String -> (a -> Prop) -> Prop
   WhenAction :: String -> (Bit 1) -> Action() -> Prop
 
 
 isAssertProp :: Prop -> Bool
-isAssertProp (Assert _ _) = True
+isAssertProp (Assert _ _ _) = True
 isAssertProp (WhenAction _ _ _) = False
 isAssertProp (Forall _ f) = isAssertProp (f initial)
 
@@ -149,10 +149,10 @@ createIncrementAction ((isDone, increment), register) = do
 {-Create the base TestBench here-}
 checkGenPure :: Prop -> Module (PureTestBench)
 checkGenPure prop = case prop of
-    (Assert _ _) -> cgp (display_ "*** ") prop
+    (Assert _ _ _) -> cgp (display_ "*** ") prop
     _            -> cgp (display_ "*** Set ") prop
-  where cgp dispValues (Assert name p) = do
-          return (makeAssertTestBench name p dispValues)
+  where cgp dispValues (Assert name p displayAct) = do
+          return (makeAssertTestBench name p (dispValues >> displayAct))
         cgp dispValues (Forall name f) = do
           gen <- makeReg initial
           tb <- cgp (displayVarAndAbove (name, gen.val) dispValues) (f (gen.val))
@@ -219,6 +219,7 @@ makeImpureTestBench maxDepth rst impureProps = do
 
     -- Cycle depth to 0 before displaying failing sequence
     displayFailingEdges :: Reg (Bit 1) <- makeReg 0
+    startedDisplayFailingEdges :: Reg (Bit 1) <- makeReg 0
 
     -- Is 1 when all at currDepth are tested (and should go back to testing the first prop)
     let currDepthDone = selectBits + 1 .>=. impureEdgesLenBit
@@ -237,8 +238,10 @@ makeImpureTestBench maxDepth rst impureProps = do
           phase <== phase.val.inv
           currDepth <== 0
           -- If switching to exec phase then reset state
-          if (phase.val) then
+          if (phase.val) then do
             rst
+            when (depthTestedTo.val .==. 0) (runPureTests <== 1)
+            display("Reset")
           -- If switching to increment phase, start inc & disable testing
           else do
             amIncrementing <== 1
@@ -285,7 +288,7 @@ makeImpureTestBench maxDepth rst impureProps = do
         cycleEnq 0
         -- Initialise values
         amIncrementing <== 0
-        depthTestedTo <== currMaxDepthReg.val
+        depthTestedTo <== 0--currMaxDepthReg.val
         currMaxDepthReg <== currMaxDepthReg.val + 1
         currMaxDepthDone <== 0
     , depthDone = currMaxDepthDone.val
@@ -303,9 +306,12 @@ makeImpureTestBench maxDepth rst impureProps = do
           else do
             displayFailingEdges <== 1
             currDepth <== 0
-            display "Impure actions taken (%0d):" (depthTestedTo.val + 1)
+            display "Impure actions taken (%0d):" (depthTestedTo.val)
         else
           (currDepth <== (currDepth.val) + 1)
+        
+        startedDisplayFailingEdges <== 1
+        when (startedDisplayFailingEdges.val.inv) (depthTestedTo <== currDepth.val)
         -- Display failing edge if have reset back to depth 0
         (edges.displayEdge) (displayFailingEdges.val)
         -- Always cycle edges taken, and edges
@@ -389,4 +395,4 @@ makeEdgeFromImpureProp maxDepth (Forall name f) = do
           cycleEnq initial
           ie.increaseMaxDepth
     }
-makeEdgeFromImpureProp _ (Assert _ _) = error "Pure in Impure method"
+makeEdgeFromImpureProp _ (Assert _ _ _) = error "Pure in Impure method"
