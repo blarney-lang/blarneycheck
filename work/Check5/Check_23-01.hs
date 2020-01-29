@@ -10,7 +10,7 @@ import Check5.Stack
 check :: Action() -> [Prop] -> Int -> Module(Bit 1)
 check rst props depth = do
   let (asserts, sideEffects) = splitProps props
-  pureTB <- combinePureTestBenches $ mapM checkGenPure asserts
+  pureTB <- combinePureProps asserts
   impureTB <- makeImpureTestBench depth rst sideEffects
 
   globalTime :: Reg (Bit 32) <- makeReg 0
@@ -19,7 +19,7 @@ check rst props depth = do
   allDone :: Reg (Bit 1) <- makeReg 0
   _ <- always do
     if (displayingFail.val) then do
-      impureTB.displayFail
+      impureTB.displayFailImpure
       when (impureTB.depthDone) finish
     else do
       if(impureTB.edgeDone.inv .|. pureTestsDone.val) then do
@@ -35,11 +35,11 @@ check rst props depth = do
           pureTestsDone <== 0
           --display "-ImpureEdge"
       else do
-        pureTB.runTest
         pureTB.increment
         pureTestsDone <== pureTB.isDone
         when (pureTB.isDone) (pureTB.reset)
         when (pureTB.failed) do
+          pureTB.displayFailPure
           displayingFail <== 1
         --display "+PureCheck"
         
@@ -79,14 +79,15 @@ checkCheck :: Module ()
 checkCheck = do
   stackSpec :: Stack (Bit 3) <- makeStackSpec 10
   stack :: Stack (Bit 3) <- makeStack 10
-  let stackPush = Forall "X" \x -> (WhenAction "Push" (1) ((stackSpec.push) x >> (stack.push) x))
-  let stackPop = WhenAction "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv) ((stackSpec.pop) >> (stack.pop))
 
+  let stackPush = Impure "Push" \x -> (1 :: Bit 1, (stackSpec.push) x >> (stack.push) x)
+  let stackPop =  Impure "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv, (stackSpec.pop) >> (stack.pop))
+  --let stackPushPopNop =  Impure "Pop" \x -> (stack.isEmpty.inv, (stack.push) x >> (stack.pop))
 
-  let propStackTopEq = Assert "Stack top equal" (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top)) (display_ "Gold top " (stackSpec.top) ", " >> (display_ "Other top " (stack.top) ", " ))
+  let propStackTopEq = Pure "StackTopEq" (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top))
 
   let rst = (stackSpec.clear) >> (stack.clear)
-  done <- check rst [propStackTopEq, stackPush, stackPop] 3
+  _ <- check rst [propStackTopEq, stackPush, stackPop] 4
   
   --always do
     --when done
