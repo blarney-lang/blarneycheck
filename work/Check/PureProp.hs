@@ -2,11 +2,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check5.PureProp where
+module Check.PureProp where
 
 import Blarney
-import Check5.TestBench
-import Check5.Generator
+import Check.TestBench
+import Check.Generator
 
 
 

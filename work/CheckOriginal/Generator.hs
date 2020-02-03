@@ -15,8 +15,6 @@
 {-# LANGUAGE DeriveAnyClass         #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE GADTs #-}
 
 module Check.Generator where
 
@@ -24,24 +22,46 @@ import Blarney
 
 type SizedBits a = (Bits a, KnownNat (SizeOf a))
 
-class SizedBits a => Generator a where
-    initial :: a
-    next :: a -> a
-    isFinal :: a -> (Bit 1)
+
+
+
+
+{-
+class Generator t where
+    initial :: t
+    next :: t -> t
+    isLast :: t -> Bit 1
+
+instance KnownNat n => Generator (Bit n) where
+    initial = makeReg (constant 0)
+    next = \prev -> prev .+. 1
+    isLast = \value -> value .==. ones
 
 instance (SizedBits a) => Generator a where
-    initial = unpack (constant 0)
-    next current = unpack $ (pack current) .+. 1
-    isFinal current = (pack current) .==. ones
+    initial = makeReg (unpack (constant 0))
+    next = \prev -> unpack $ (pack prev) .+. 1
+    isLast = \value -> (pack value) .==. ones
+
+instance (SizedBits a) => Generator ([a]) where
+    initial = makeReg ([unpack (constant 0)])
+    next = \prev -> unpack $ (pack prev) .+. 1
+    isLast = \value -> (pack value) .==. ones
+-}
+{-
+data GeneratorState t = GeneratorState 
+    { peek :: t
+    , isLast :: Bit 1
+    , reset :: Action ()
+    , consume :: Action ()
+    } deriving (Generic, Interface)
 
 
-doActionList :: [Action ()] -> Action()
-doActionList as = foldr (>>) noAction as
+bitGen :: Bits a => Module (GeneratorState a)
+bitGen = do
 
-incrementGenList :: Generator a => [a] -> [a]
-incrementGenList as = igl 1 as
-  where igl :: Generator a => Bit 1 -> [a] -> [a]
-        igl _ [] = []
-        igl inc (x:xs) =
-          let incXs = igl (inc .&. isFinal x) xs
-          in (unpack $ mux inc (mux (isFinal x) (initial, pack (next x)), pack x)):incXs
+    Generator {
+    peek = constant 0,
+    next = \prev -> prev .+. 1,
+    isLast = \value -> value .==. ones
+}
+-}

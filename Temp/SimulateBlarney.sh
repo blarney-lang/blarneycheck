@@ -19,4 +19,6 @@ echo "Executed $TEST with result of:"
 ./top | head -n -1
 
 cd ..
-rm -rf *.o *.hi "./$TEST" Out-Verilog
+
+rm -rf *.o *.hi Out-Verilog
+find . -type f  ! -name "*.*"  -delete

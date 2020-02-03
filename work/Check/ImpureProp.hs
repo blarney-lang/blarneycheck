@@ -2,12 +2,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check5.ImpureProp where
+module Check.ImpureProp where
 
 import Blarney
 import Blarney.Recipe
 import Blarney.Queue
-import Check5.Generator
+import Check.Generator
 
 {-|
   Created for WhenActions Props, used as the interface to increase the depth of the sequential search

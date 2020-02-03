@@ -1,9 +1,8 @@
-module Check5.Stack where
-
 -- Blarney imports
 import Blarney
 import Blarney.Queue
 import Blarney.Recipe
+import Check.Check
 
 -- Standard imports
 import Data.Proxy
@@ -90,25 +89,19 @@ makeStackSpec logSize =
 -- Top-level module
 testBench :: Module ()
 testBench = do
-  -- Create 256-element stack
-  stk :: Stack (Bit 8) <- makeStack 8
+  stackSpec :: Stack (Bit 3) <- makeStackSpec 10
+  stack :: Stack (Bit 3) <- makeStack 10
 
-  -- Sample test sequence
-  let test =
-        Seq [
-          Action do
-            push stk 1
-        , Action do
-            push stk 2
-        , Action do
-            push stk 3
-        , Action do
-            pop stk
-        , Action do
-            pop stk
-        , Action do
-            display (stk.top)
-            finish
-        ]
+  let stackPush = Equiv "Push" \x -> (1 :: Bit 1, (stackSpec.push) x >> (stack.push) x)
+  let stackPop =  Equiv "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv, (stackSpec.pop) >> (stack.pop))
+  --let stackPushPopNop =  Impure "Pop" \x -> (stack.isEmpty.inv, (stack.push) x >> (stack.pop))
 
-  runOnce test
+  let propStackTopEq = Assert "StackTopEq" (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top))
+
+  let rst = (stackSpec.clear) >> (stack.clear)
+  _ <- check rst [propStackTopEq, stackPush, stackPop] 6
+
+  return ()
+
+main :: IO ()
+main = writeVerilogTop testBench "top" "Out-Verilog/"

@@ -2,13 +2,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check5.Property where
+module Check.Property where
 
 import Blarney
 import Blarney.Queue
-import Check5.TestBench
-import Check5.PureProp
-import Check5.ImpureProp
+import Check.TestBench
+import Check.PureProp
+import Check.ImpureProp
 
 {-
 data Prop where
@@ -21,23 +21,9 @@ data Prop where
   Pure :: PureProp a => String -> a -> Prop
   Impure :: ImpureProp a => String -> a -> Prop
 
-splitProps :: [Prop] -> ([Prop], [Prop])
-splitProps [] = ([], [])
-splitProps ((prop@(Pure _ _)):props) = 
-  let (assert, sideEffect) = splitProps props
-  in (prop:assert, sideEffect)
-splitProps ((prop@(Impure _ _)):props) =
-  let (assert, sideEffect) = splitProps props
-  in (assert, prop:sideEffect)
-
-
-
-
-
 
 
 purePropToTB :: Prop -> Module PureTestBench
-purePropToTB (Impure _ _) = error "Impure in pure props"
 purePropToTB (Pure name prop) = do
   tb <- pPropToTB prop
   return PureTestBench { increment = tb.increment

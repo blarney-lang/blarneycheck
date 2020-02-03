@@ -1,15 +1,29 @@
 {-# LANGUAGE GADTs #-}
 
+module Check.Check where
+
 import Blarney
-import Blarney.Recipe
-import Check5.TestBench
-import Check5.Property
-import Check5.Stack
+import Check.TestBench
+import Check.Property
+import Check.PureProp
+import Check.ImpureProp
 
---import Blarney.Queue
+data Property where
+  Assert :: PureProp a => String -> a -> Property
+  Equiv :: ImpureProp a => String -> a -> Property
 
 
-check :: Action() -> [Prop] -> Int -> Module(Bit 1)
+splitProps :: [Property] -> ([Prop], [Prop])
+splitProps [] = ([], [])
+splitProps ((Assert name prop):props) = 
+  let (assert, sideEffect) = splitProps props
+  in ((Pure name prop):assert, sideEffect)
+splitProps ((Equiv name prop):props) = 
+  let (assert, sideEffect) = splitProps props
+  in (assert, (Impure name prop):sideEffect)
+
+
+check :: Action() -> [Property] -> Int -> Module(Bit 1)
 check rst props depth = do
   let (asserts, sideEffects) = splitProps props
   pureTB <- combinePureProps asserts
@@ -26,7 +40,7 @@ check rst props depth = do
     else do
       if(impureTB.edgeDone.inv .|. pureTestsDone.val) then do
         if (impureTB.depthDone) then do
-          _ <- display "--All tests passed to depth " (impureTB.currMaxDepth) "--"
+          _ <- display "--All tests passed to depth %0d" (impureTB.currMaxDepth) " at time %0d" (globalTime.val) "--"
           if ((impureTB.currMaxDepth) .>=. (constant (toInteger depth))) then do
             allDone <== 1
             finish
@@ -53,44 +67,6 @@ check rst props depth = do
   return (allDone.val)
 
 
-
-twoSort :: KnownNat n => (Bit n, Bit n) -> (Bit n, Bit n)
---twoSort (a :: Bit n, b) = let halfSize = constant (toInteger (valueOf @(n))) in
---                          (b - a) + halfSize .>=. halfSize ? ((a, b), (b, a))
-twoSort (a, b) = a .<. b ? ((a, b), (b, a))
-
-bubble :: KnownNat n => [Bit n] -> [Bit n]
-bubble [] = []
-bubble [x] = [x]
-bubble (x:y:rest) = bubble (small:rest) ++ [big]
-  where (small, big) = twoSort (x, y)
-
-sort :: KnownNat n => [Bit n] -> [Bit n]
-sort [] = []
-sort (x:xs) = smallest : sort rest
-  where (smallest:rest) = bubble (x:xs)
-
-isSorted :: KnownNat n => [Bit n] -> Bit 1
-isSorted [] = 1
-isSorted [_] = 1
-isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
-
-
-
-checkCheck :: Module ()
-checkCheck = do
-  
-  stackSpec :: Stack (Bit 3) <- makeStackSpec 10
-  stack :: Stack (Bit 3) <- makeStack 10
-
-  let stackPush = Impure "Push" \x -> (1 :: Bit 1, (stackSpec.push) x >> (stack.push) x)
-  let stackPop =  Impure "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv, (stackSpec.pop) >> (stack.pop))
-  --let stackPushPopNop =  Impure "Pop" \x -> (stack.isEmpty.inv, (stack.push) x >> (stack.pop))
-
-  let propStackTopEq = Pure "StackTopEq" (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top))
-
-  let rst = (stackSpec.clear) >> (stack.clear)
-  _ <- check rst [propStackTopEq, stackPush, stackPop] 6
   
   {-
   let propSorted = Pure "Sorted" (5 :: Int, \(xs :: [Bit 2]) -> isSorted (sort xs))
@@ -157,8 +133,3 @@ checkCheck = do
         ]
   runOnce test
   -}
-  return ()
-
-
-main :: IO ()
-main = writeVerilogTop checkCheck "top" "Out-Verilog/"
