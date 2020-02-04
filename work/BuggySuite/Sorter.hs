@@ -24,7 +24,7 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 
 testBench :: Module ()
 testBench = do
-  let prop_Sorted = Assert "Sorted" (5 :: Int, \(xs :: [Bit 3]) -> (isSorted $ sort xs))
+  let prop_Sorted = ("Sorted", ForallList 5 \(xs :: [Bit 3]) -> Assert (isSorted $ sort xs))
   
   _ <- check noAction [prop_Sorted] 0
   

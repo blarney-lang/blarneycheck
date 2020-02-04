@@ -33,15 +33,3 @@ instance (SizedBits a) => Generator a where
     initial = unpack (constant 0)
     next current = unpack $ (pack current) .+. 1
     isFinal current = (pack current) .==. ones
-
-
-doActionList :: [Action ()] -> Action()
-doActionList as = foldr (>>) noAction as
-
-incrementGenList :: Generator a => [a] -> [a]
-incrementGenList as = igl 1 as
-  where igl :: Generator a => Bit 1 -> [a] -> [a]
-        igl _ [] = []
-        igl inc (x:xs) =
-          let incXs = igl (inc .&. isFinal x) xs
-          in (unpack $ mux inc (mux (isFinal x) (initial, pack (next x)), pack x)):incXs

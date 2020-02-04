@@ -1,31 +1,22 @@
 {-# LANGUAGE GADTs #-}
 
-module Check.Check where
+module Check.Check (
+  module Check.Generator
+, module Check.Property
+, module Check.Check
+) where
 
 import Blarney
-import Check.TestBench
+import Check.Generator
 import Check.Property
 import Check.PureProp
 import Check.ImpureProp
-
-data Property where
-  Assert :: PureProp a => String -> a -> Property
-  Equiv :: ImpureProp a => String -> a -> Property
-
-
-splitProps :: [Property] -> ([Prop], [Prop])
-splitProps [] = ([], [])
-splitProps ((Assert name prop):props) = 
-  let (assert, sideEffect) = splitProps props
-  in ((Pure name prop):assert, sideEffect)
-splitProps ((Equiv name prop):props) = 
-  let (assert, sideEffect) = splitProps props
-  in (assert, (Impure name prop):sideEffect)
-
+import Check.TestBench
+import Check.Utils
 
 check :: Action() -> [Property] -> Int -> Module(Bit 1)
 check rst props depth = do
-  let (asserts, sideEffects) = splitProps props
+  let (asserts, sideEffects) = splitProperties props
   pureTB <- combinePureProps asserts
   impureTB <- makeImpureTestBench depth rst sideEffects
 

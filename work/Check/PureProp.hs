@@ -5,29 +5,51 @@
 module Check.PureProp where
 
 import Blarney
-import Check.TestBench
 import Check.Generator
+import Check.Property
+import Check.TestBench
+import Check.Utils
 
 
+propertyToPureTB :: Property -> Module PureTestBench
+propertyToPureTB (name, prop) = do
+  tb <- propToPureTB prop
+  return PureTestBench { increment = tb.increment
+                       , isDone = tb.isDone
+                       , reset = tb.reset
+                       , failed = tb.failed
+                       , displayFailPure = when (tb.failed) (display_ "*** " name " ") >> (tb.displayFailPure)
+                       }
 
--- Class of Pure Props
-class PureProp a where
-  pPropToTB :: a -> Module(PureTestBench)
+combinePureProps :: [Property] -> Module PureTestBench
+combinePureProps pureProps = do
+  combinePPs pureProps
+  where
+    combinePPs [] = error "No Assert Props given"
+    combinePPs [prop] = propertyToPureTB prop
+    combinePPs (prop:props) = do
+      tb <- propertyToPureTB prop
+      tbOthers <- combinePPs props
+      return PureTestBench { increment = tb.increment >> tbOthers.increment
+                           , isDone = tb.isDone .&. tbOthers.isDone
+                           , reset = tb.reset >> tbOthers.reset
+                           , failed = tb.failed .|. tbOthers.failed
+                           , displayFailPure = tb.displayFailPure >> tbOthers.displayFailPure
+                           }
 
-instance PureProp (Bit 1) where
-  pPropToTB result = 
-    return PureTestBench {
-      increment = noAction
-      , isDone = 1
-      , reset = noAction
-      , failed = inv result
-      , displayFailPure = when (inv result) (display "failed! ***")
-    }
-
-instance (Generator a, PureProp b) => PureProp (a -> b) where
-  pPropToTB f = do
+propToPureTB :: Prop -> Module(PureTestBench)
+propToPureTB (WhenAction _ _) = error "WhenAction in Pure properties"
+propToPureTB (Assert result) =
+  return PureTestBench {
+    increment = noAction
+    , isDone = 1
+    , reset = noAction
+    , failed = inv result
+    , displayFailPure = when (inv result) (display "failed! ***")
+  }
+propToPureTB (Forall f) = do
     gen <- makeReg initial
-    tb <- pPropToTB (f $ gen.val)
+    tb <- propToPureTB (f $ gen.val)
     let incrementAction = do {
       if (isFinal $ gen.val) then do
         if tb.isDone
@@ -46,15 +68,13 @@ instance (Generator a, PureProp b) => PureProp (a -> b) where
       , failed = tb.failed
       , displayFailPure = when (tb.failed) (display_ (pack $ gen.val) " ") >> (tb.displayFailPure)
     }
-
-instance (Generator a, PureProp b) => PureProp (Int, [a] -> b) where
-  pPropToTB (listLen, f) = do
-    gens <- mapM makeReg (replicate listLen initial)
+propToPureTB (ForallList maxLength f) = do
+    gens <- mapM makeReg (replicate maxLength initial)
     let vals = map val gens
-    let resetRegAction = doActionList (map (\(r, nV) -> r <== nV) (zip gens (replicate listLen initial)))
+    let resetRegAction = doActionList (map (\(r, nV) -> r <== nV) (zip gens (replicate maxLength initial)))
     let incRegAction = doActionList (map (\(r, nV) -> r <== nV) (zip gens (incrementGenList vals)))
     let amFinal = andList $ map isFinal vals
-    tb <- pPropToTB (f vals)
+    tb <- propToPureTB (f vals)
     let incrementAction = do {
       if (amFinal) then do
         if tb.isDone
@@ -73,6 +93,7 @@ instance (Generator a, PureProp b) => PureProp (Int, [a] -> b) where
       , failed = tb.failed
       , displayFailPure = when (tb.failed) (display_ (map pack vals) " ") >> (tb.displayFailPure)
     }
+
 {-
 instance (PureProp a) => PureProp [a] where
   pPropToTB [] = error "Must specify at least one Pure Property to test!"

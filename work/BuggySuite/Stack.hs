@@ -92,14 +92,14 @@ testBench = do
   stackSpec :: Stack (Bit 3) <- makeStackSpec 10
   stack :: Stack (Bit 3) <- makeStack 10
 
-  let stackPush = Equiv "Push" \x -> (1 :: Bit 1, (stackSpec.push) x >> (stack.push) x)
-  let stackPop =  Equiv "Pop" (stackSpec.isEmpty.inv .&. stack.isEmpty.inv, (stackSpec.pop) >> (stack.pop))
-  --let stackPushPopNop =  Impure "Pop" \x -> (stack.isEmpty.inv, (stack.push) x >> (stack.pop))
+  let prop_StackPush = ("Push", Forall \x -> WhenAction 1 ((stackSpec.push) x >> (stack.push) x))
+  let prop_StackPop =  ("Pop", WhenAction (stackSpec.isEmpty.inv .&. stack.isEmpty.inv) ((stackSpec.pop) >> (stack.pop)))
+  --let prop_StackPushPopNop = ("PushPop", Forall \x -> WhenRecipe (stack.isEmpty.inv) ((stack.push) x >> (stack.pop)))
 
-  let propStackTopEq = Assert "StackTopEq" (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top))
+  let prop_StackTopEq = ("StackTopEq", Assert (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top)))
 
   let rst = (stackSpec.clear) >> (stack.clear)
-  _ <- check rst [propStackTopEq, stackPush, stackPop] 6
+  _ <- check rst [prop_StackTopEq, prop_StackPush, prop_StackPop] 6
 
   return ()
 
