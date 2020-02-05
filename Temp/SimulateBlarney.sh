@@ -8,7 +8,7 @@ pwd
 echo "Filedir: $FILEDIR"
 echo "Filename: $FILENAME"
 
-if [ ! -d "/opt/ghc/bin" ]; then
+if ! [[ -d "/opt/ghc/bin" || -x "$(command -v ghc)" ]]; then
   # Take action if $DIR exists. #
   echo "Installing ghc files in /opt/ghc/bin..."
   sudo add-apt-repository -y ppa:hvr/ghc
