@@ -46,10 +46,11 @@ check rst props depth = do
         pureTestsDone <== pureTB.isDone
         when (pureTB.isDone) (pureTB.reset)
         when (pureTB.failed) do
+          _ <- display "@ Fail at time %0d" (globalTime.val) " @"
           pureTB.displayFailPure
           displayingFail <== 1
         --display "+PureCheck"
-        
+      --when (globalTime.val .>. 600) finish
       globalTime <== globalTime.val + 1
       --display "------TICK------"
       --display "Time: " (globalTime.val)

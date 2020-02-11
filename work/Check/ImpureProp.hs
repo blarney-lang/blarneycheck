@@ -23,7 +23,8 @@ data ImpureEdge = ImpureEdge
     -- First Bit 1 sets if this action should be displayed
     -- Second Bit 1 indicated if this edge should run it's impure Action
     -- (should only be set on one IpureEdge at a time)
-    { increaseDepthExec :: Bit 1 -> Bit 1 -> Action()
+    { increaseDepthDisplay :: Bit 1 -> Action()
+    , execImpure :: Bit 1 -> Action()
     , depthIncDone :: Bit 1
 
     -- Used during Increment phase: Increment bit -> Reset bit -> IncAction
@@ -38,10 +39,33 @@ propToIE :: Int -> Prop -> Module(ImpureEdge)
 propToIE _ (Assert _) = error "Assert in Impure Props"
 propToIE _ (WhenAction guardBit impureAction) = 
     return ImpureEdge {
-        increaseDepthExec = \disp -> \exec -> do
+        increaseDepthDisplay = \disp -> do
+          when (disp) (display "    \t[Executed: " guardBit "]")
+      , execImpure = \exec -> do
           when (exec .&. guardBit) impureAction
-          when (disp) (display "\t[Executed: " guardBit "]")
       , depthIncDone = 1
+      , increaseDepthInc = \_ -> \_ -> noAction
+      , edgeExhaused = 1
+      , increaseMaxDepth = noAction
+    }
+propToIE _ (WhenRecipe guardBit impureRecipe) = do
+    executingEdge <- makeReg 0
+    execEdge <- makeReg 0
+    myEdgeDone <- run (execEdge.val) impureRecipe
+    return ImpureEdge {
+        increaseDepthDisplay = \disp -> do
+          when (disp) (display "    \t[Executed: " guardBit "]")
+      , execImpure = \exec -> do
+          when (exec .&. guardBit .&. executingEdge.val.inv) do
+            --when disp (display "Starting edge")
+            executingEdge <== 1
+            execEdge <== 1
+          when (executingEdge.val) do
+            --when (myEdgeDone.inv .&. disp) (display "Not ending edge")
+            --when (disp .&. myEdgeDone) (display "Ending edge")
+            executingEdge <== myEdgeDone.inv
+            execEdge <== 0
+      , depthIncDone = myEdgeDone .|. (executingEdge.val.inv .&. guardBit.inv)
       , increaseDepthInc = \_ -> \_ -> noAction
       , edgeExhaused = 1
       , increaseMaxDepth = noAction
@@ -71,10 +95,11 @@ propToIE maxSeq (Forall f) = do
     }
     ie <- propToIE maxSeq (f currVal)
     return ImpureEdge {
-        increaseDepthExec = \disp -> \exec -> do
+        increaseDepthDisplay = \disp -> do
           when disp (display_ (pack currVal) " ")
           (cycleQueue 0 0)
-          (ie.increaseDepthExec) disp exec
+          (ie.increaseDepthDisplay) disp
+      , execImpure = ie.execImpure
       , depthIncDone = ie.depthIncDone
       , increaseDepthInc = \inc -> \rst -> cycleQueue inc rst >> (ie.increaseDepthInc) (inc .&. amFinal) rst
       , edgeExhaused = amFinal .&. ie.edgeExhaused
@@ -109,10 +134,11 @@ propToIE maxSeq (ForallList listLen f) = do
     }
     ie <- propToIE maxSeq (f currVal)
     return ImpureEdge {
-        increaseDepthExec = \disp -> \exec -> do
+        increaseDepthDisplay = \disp -> do
           when disp (display_ (map pack currVal) " ")
           (cycleQueue 0 0)
-          (ie.increaseDepthExec) disp exec
+          (ie.increaseDepthDisplay) disp
+      , execImpure = ie.execImpure
       , depthIncDone = ie.depthIncDone
       , increaseDepthInc = \inc -> \rst -> cycleQueue inc rst >> (ie.increaseDepthInc) (inc .&. amFinal) rst
       , edgeExhaused = amFinal .&. ie.edgeExhaused
@@ -121,6 +147,7 @@ propToIE maxSeq (ForallList listLen f) = do
           cycleEnq (replicate listLen initial)
           ie.increaseMaxDepth
     }
+
 {-
 instance ImpureProp (Bit 1, Recipe) where
   iPropToTB _ (guardAct, impureRecipe) = do
@@ -170,7 +197,8 @@ propsToEdgesWithSelect maxSeq props = do
   allEdges <- propsToEdges props
   return (\idx -> 
     ImpureEdge {
-      increaseDepthExec = sel idx (map increaseDepthExec allEdges)
+      increaseDepthDisplay = sel idx (map increaseDepthDisplay allEdges)
+    , execImpure = sel idx (map execImpure allEdges)
     , depthIncDone = sel idx (map depthIncDone allEdges)
     , increaseDepthInc = sel idx (map increaseDepthInc allEdges)
     , edgeExhaused = sel idx (map edgeExhaused allEdges)
@@ -180,9 +208,10 @@ propsToEdgesWithSelect maxSeq props = do
         propsToEdges ((name, prop):xs) = do
           ie <- propToIE maxSeq prop
           let edge = ImpureEdge {
-                        increaseDepthExec = \disp -> \exec -> do
+                        increaseDepthDisplay = \disp -> do
                           when disp (display_ name " ")
-                          (ie.increaseDepthExec) disp exec
+                          (ie.increaseDepthDisplay) disp
+                      , execImpure = ie.execImpure
                       , depthIncDone = ie.depthIncDone
                       , increaseDepthInc = ie.increaseDepthInc
                       , edgeExhaused = ie.edgeExhaused
@@ -244,21 +273,14 @@ makeImpureTestBench maxDepth rst impureProps = do
     startedDisplayFailingEdges :: Reg (Bit 1) <- makeReg 0
 
     -- Is 1 when all at currDepth are tested (and should go back to testing the first prop)
-    let currDepthDone = selectBits + 1 .>=. impureEdgesLenBit
+    let currDepthDone = edges.edgeExhaused .&. (selectBits + 1 .>=. impureEdgesLenBit)
     -- Is 1 when we have reached the curr max depth
     let isAtFinalDepth = currDepth.val + 1 .>=. currMaxDepthReg.val
     -- What is the last tested depth
     let lastTestDepth = mux (currDepth.val .!=. 0) (currDepth.val, currMaxDepthReg.val)
-    return ImpureTestBench {
-      runEdge = do
-        if (currMaxDepthDone.val) then
-          noAction
-        else do
-        -- Check if currently running edge, then wait until done.
-        -- Or if am finished incrementing and waiting for depth increase
-        if (edges.depthIncDone.inv) then
-          (edges.increaseDepthExec) 0 0
-        else do
+
+    let shouldIncDepth = edges.depthIncDone .|. phase.val
+    let incrementDepth = do {
         -- If am at max depth then reset, otherwise increment
         -- IMPORTANT: inc or exec phase will still run after this
         if isAtFinalDepth then do
@@ -274,8 +296,22 @@ makeImpureTestBench maxDepth rst impureProps = do
             amIncrementing <== 1
         else
           (currDepth <== (currDepth.val) + 1)
-        -- Always want to cycle depth, since we increased it above
-        cycleDeq
+    }
+
+    return ImpureTestBench {
+      runEdge = do
+        if (currMaxDepthDone.val) then
+          noAction
+        else do
+        --when ((currMaxDepthReg.val .>=. 2)) (display "Run edge at depth " (currDepth.val) " with choice " selectBits " and amInc " (amIncrementing.val))
+        -- Check if currently running edge, then wait until done.
+        -- Or if am finished incrementing and waiting for depth increase
+
+        when shouldIncDepth do
+          incrementDepth
+          -- Always want to cycle depth, since we increased it above
+          cycleDeq
+
         -- Split on increment and execute phase
         if(phase.val) then do
           runPureTests <== 0
@@ -285,12 +321,13 @@ makeImpureTestBench maxDepth rst impureProps = do
 
           -- Cases for incrementing my current edge counter:
           -- When current edge is exhausted and am at the end of all edges, go back to 0
-          if (amIncrementing.val .&. edges.edgeExhaused .&. currDepthDone) then
+          if (amIncrementing.val .&. currDepthDone) then do
+            --when (currMaxDepthReg.val .>=. 4) 
             (cycleEnq 0)
           -- When edge is exhausted but I can still go to next edge
-          else if (amIncrementing.val .&. edges.edgeExhaused) then
+          else if (amIncrementing.val .&. edges.edgeExhaused) then do
             (cycleEnq $ selectBits + 1)
-          else
+          else do
           -- Edge is not exhausted so either got incremented or we aren't incrementing -> do nothing
             (cycleEnq selectBits)
 
@@ -303,9 +340,11 @@ makeImpureTestBench maxDepth rst impureProps = do
           --display "^ExecPhase" (currDepth.val)
           --(edges.displayEdge) 1
           -- Start Pure Tests when we are at an untested depth
-          when (currDepth.val .>=. depthTestedTo.val) (runPureTests <== 1)
-          (edges.increaseDepthExec) 0 1
-          cycleEnq selectBits
+          when ((currDepth.val .>=. depthTestedTo.val) .&. shouldIncDepth) (runPureTests <== 1)
+          (edges.execImpure) 1
+          when shouldIncDepth do
+            (edges.increaseDepthDisplay) 0
+            (cycleEnq selectBits)
     , edgeDone = (runPureTests.val) .&. edges.depthIncDone
     -- When all possibilities to current depth exhausted
     -- depthDone = 1 & incMaxDepth must be called
@@ -330,24 +369,27 @@ makeImpureTestBench maxDepth rst impureProps = do
         if ((currDepth.val .>. depthTestedTo.val) .&. displayFailingEdges.val) then
           currMaxDepthDone <== 1
         else do
-        if isAtFinalDepth then do
-          if(displayFailingEdges.val) then do
-            currMaxDepthDone <== 1
-          else do
-            rst
-            displayFailingEdges <== 1
-            currDepth <== 0
-            
-        else
-          (currDepth <== (currDepth.val) + 1)
+        when (edges.depthIncDone) do
+          -- Display failing edge if have reset back to depth 0
+          (edges.increaseDepthDisplay) (displayFailingEdges.val)
+
+          cycleDeq
+          cycleEnq selectBits
+          if isAtFinalDepth then do
+            if(displayFailingEdges.val) then do
+              currMaxDepthDone <== 1
+            else do
+              rst
+              displayFailingEdges <== 1
+              currDepth <== 0
+          else
+            (currDepth <== (currDepth.val) + 1)
         
         when (startedDisplayFailingEdges.val.inv) do
           startedDisplayFailingEdges <== 1
           display "Impure actions taken (%0d):" lastTestDepth
         
-        -- Display failing edge if have reset back to depth 0
-        (edges.increaseDepthExec) (displayFailingEdges.val) (displayFailingEdges.val)
+        (edges.execImpure) 1
+        -- (edges.increaseDepthExec) (displayFailingEdges.val) 0
         -- Always cycle edges taken, and edges
-        cycleDeq
-        cycleEnq selectBits
     }
