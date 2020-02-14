@@ -1,14 +1,14 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DatatypeContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 import Blarney
 import Check.Check
 
-data SizedBits a => MemReq a = MemReq { memReq :: a }
+type MemReq a = SizedBits a
 
-instance SizedBits a => Generator (MemReq a) where
+instance (MemReq a) => Generator a where
   initial = unpack (constant 10)
   next current = unpack $ (pack current) .+. 1
   isFinal current = (pack current) .==. ones
