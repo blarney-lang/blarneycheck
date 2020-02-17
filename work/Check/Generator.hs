@@ -29,7 +29,7 @@ class SizedBits a => Generator a where
     next :: a -> a
     isFinal :: a -> (Bit 1)
 
-instance (SizedBits a) => Generator a where
+instance {-# OVERLAPPABLE #-} (SizedBits a) => Generator a where
     initial = unpack (constant 0)
     next current = unpack $ (pack current) .+. 1
     isFinal current = (pack current) .==. ones
