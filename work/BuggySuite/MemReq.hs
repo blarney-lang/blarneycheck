@@ -15,7 +15,7 @@ instance (SizedBits a) => Generator (MemReq a) where
 
 testBench :: Module ()
 testBench = do
-  let prop_MRGT10 = ("MemReq GT10", Forall \(mr :: MemReq (Bit 4)) -> Assert (pack mr .>. 10))
+  let prop_MRGT10 = ("MemReq GT10", Forall \(mr :: MemReq (Bit 5)) -> Assert (pack mr .>. 10))
 
   _ <- check noAction [prop_MRGT10] 0
   
