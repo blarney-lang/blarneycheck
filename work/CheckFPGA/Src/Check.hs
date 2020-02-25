@@ -32,9 +32,14 @@ check rst props depth out = do
   displayingFail :: Reg (Bit 1) <- makeReg 0
   allDone :: Reg (Bit 1) <- makeReg 0
   _ <- always do
+    if (allDone.val) then do
+      noAction
+    else do
     if (displayingFail.val) then do
       impureTB.displayFailImpure
-      when (impureTB.depthDone) finish
+      when (impureTB.depthDone) do
+        allDone <== 1
+        finish
     else do
       if(impureTB.edgeDone.inv .|. pureTestsDone.val) then do
         if (impureTB.depthDone) then do
