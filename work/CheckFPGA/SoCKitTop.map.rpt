@@ -1,5 +1,5 @@
 Analysis & Synthesis report for SoCKitTop
-Tue Feb 25 11:23:42 2020
+Tue Feb 25 11:35:24 2020
 Quartus Prime Version 16.1.0 Build 196 10/24/2016 SJ Lite Edition
 
 
@@ -40,9 +40,8 @@ Quartus Prime Version 16.1.0 Build 196 10/24/2016 SJ Lite Edition
  32. Port Connectivity Checks: "SoC:soc|SoC_mm_interconnect_0:mm_interconnect_0|altera_merlin_master_translator:blarneycomponent_0_avalon_master_translator"
  33. Port Connectivity Checks: "SoC:soc|SoC_jtag_uart_0:jtag_uart_0"
  34. Post-Synthesis Netlist Statistics for Top Partition
- 35. Post-Synthesis Netlist Statistics for Partition sld_hub:auto_hub
- 36. Elapsed Time Per Partition
- 37. Analysis & Synthesis Messages
+ 35. Elapsed Time Per Partition
+ 36. Analysis & Synthesis Messages
 
 
 
@@ -69,13 +68,13 @@ agreement for further details.
 +-------------------------------------------------------------------------------+
 ; Analysis & Synthesis Summary                                                  ;
 +---------------------------------+---------------------------------------------+
-; Analysis & Synthesis Status     ; Successful - Tue Feb 25 11:23:42 2020       ;
+; Analysis & Synthesis Status     ; Successful - Tue Feb 25 11:35:24 2020       ;
 ; Quartus Prime Version           ; 16.1.0 Build 196 10/24/2016 SJ Lite Edition ;
 ; Revision Name                   ; SoCKitTop                                   ;
 ; Top-level Entity Name           ; SocKit_golden_top                           ;
 ; Family                          ; Cyclone V                                   ;
 ; Logic utilization (in ALMs)     ; N/A                                         ;
-; Total registers                 ; 212                                         ;
+; Total registers                 ; 252                                         ;
 ; Total pins                      ; 82                                          ;
 ; Total virtual pins              ; 0                                           ;
 ; Total block memory bits         ; 512                                         ;
@@ -189,8 +188,7 @@ agreement for further details.
 ;                            ;             ;
 ; Usage by Processor         ; % Time Used ;
 ;     Processor 1            ; 100.0%      ;
-;     Processor 2            ;   0.0%      ;
-;     Processors 3-4         ;   0.0%      ;
+;     Processors 2-4         ;   0.0%      ;
 +----------------------------+-------------+
 
 
@@ -238,33 +236,33 @@ agreement for further details.
 +--------------------------------------------------------------------+-----------------+----------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-------------+
 
 
-+------------------------------------------------------------------------+
-; Analysis & Synthesis Resource Usage Summary                            ;
-+---------------------------------------------+--------------------------+
-; Resource                                    ; Usage                    ;
-+---------------------------------------------+--------------------------+
-; Estimate of Logic utilization (ALMs needed) ; 157                      ;
-;                                             ;                          ;
-; Combinational ALUT usage for logic          ; 253                      ;
-;     -- 7 input functions                    ; 3                        ;
-;     -- 6 input functions                    ; 52                       ;
-;     -- 5 input functions                    ; 49                       ;
-;     -- 4 input functions                    ; 35                       ;
-;     -- <=3 input functions                  ; 114                      ;
-;                                             ;                          ;
-; Dedicated logic registers                   ; 212                      ;
-;                                             ;                          ;
-; I/O pins                                    ; 82                       ;
-; Total MLAB memory bits                      ; 0                        ;
-; Total block memory bits                     ; 512                      ;
-;                                             ;                          ;
-; Total DSP Blocks                            ; 0                        ;
-;                                             ;                          ;
-; Maximum fan-out node                        ; altera_internal_jtag~TDO ;
-; Maximum fan-out                             ; 132                      ;
-; Total fan-out                               ; 1919                     ;
-; Average fan-out                             ; 2.90                     ;
-+---------------------------------------------+--------------------------+
++----------------------------------------------------------------+
+; Analysis & Synthesis Resource Usage Summary                    ;
++---------------------------------------------+------------------+
+; Resource                                    ; Usage            ;
++---------------------------------------------+------------------+
+; Estimate of Logic utilization (ALMs needed) ; 191              ;
+;                                             ;                  ;
+; Combinational ALUT usage for logic          ; 321              ;
+;     -- 7 input functions                    ; 2                ;
+;     -- 6 input functions                    ; 52               ;
+;     -- 5 input functions                    ; 48               ;
+;     -- 4 input functions                    ; 32               ;
+;     -- <=3 input functions                  ; 187              ;
+;                                             ;                  ;
+; Dedicated logic registers                   ; 252              ;
+;                                             ;                  ;
+; I/O pins                                    ; 82               ;
+; Total MLAB memory bits                      ; 0                ;
+; Total block memory bits                     ; 512              ;
+;                                             ;                  ;
+; Total DSP Blocks                            ; 0                ;
+;                                             ;                  ;
+; Maximum fan-out node                        ; OSC_50_B3B~input ;
+; Maximum fan-out                             ; 154              ;
+; Total fan-out                               ; 2257             ;
+; Average fan-out                             ; 2.93             ;
++---------------------------------------------+------------------+
 
 
 +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -272,11 +270,11 @@ agreement for further details.
 +-----------------------------------------------------------------------------------------------------------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------+--------------+
 ; Compilation Hierarchy Node                                                                                                              ; Combinational ALUTs ; Dedicated Logic Registers ; Block Memory Bits ; DSP Blocks ; Pins ; Virtual Pins ; Full Hierarchy Name                                                                                                                                                                                                                                                                                                                                           ; Entity Name                       ; Library Name ;
 +-----------------------------------------------------------------------------------------------------------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------------------+--------------+
-; |SocKit_golden_top                                                                                                                      ; 253 (1)             ; 212 (0)                   ; 512               ; 0          ; 82   ; 0            ; |SocKit_golden_top                                                                                                                                                                                                                                                                                                                                            ; SocKit_golden_top                 ; work         ;
-;    |SoC:soc|                                                                                                                            ; 160 (0)             ; 136 (0)                   ; 512               ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc                                                                                                                                                                                                                                                                                                                                    ; SoC                               ; SoC          ;
-;       |BlarneyComponent:blarneycomponent_0|                                                                                             ; 81 (0)              ; 41 (0)                    ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0                                                                                                                                                                                                                                                                                                ; BlarneyComponent                  ; SoC          ;
+; |SocKit_golden_top                                                                                                                      ; 321 (1)             ; 252 (0)                   ; 512               ; 0          ; 82   ; 0            ; |SocKit_golden_top                                                                                                                                                                                                                                                                                                                                            ; SocKit_golden_top                 ; work         ;
+;    |SoC:soc|                                                                                                                            ; 228 (0)             ; 176 (0)                   ; 512               ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc                                                                                                                                                                                                                                                                                                                                    ; SoC                               ; SoC          ;
+;       |BlarneyComponent:blarneycomponent_0|                                                                                             ; 149 (0)             ; 81 (0)                    ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0                                                                                                                                                                                                                                                                                                ; BlarneyComponent                  ; SoC          ;
 ;          |JTAGUART:uart|                                                                                                                ; 15 (15)             ; 10 (10)                   ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|JTAGUART:uart                                                                                                                                                                                                                                                                                  ; JTAGUART                          ; work         ;
-;          |Top:top|                                                                                                                      ; 66 (66)             ; 31 (31)                   ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top                                                                                                                                                                                                                                                                                        ; Top                               ; work         ;
+;          |Top:top|                                                                                                                      ; 134 (134)           ; 71 (71)                   ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top                                                                                                                                                                                                                                                                                        ; Top                               ; work         ;
 ;       |SoC_jtag_uart_0:jtag_uart_0|                                                                                                     ; 76 (13)             ; 82 (6)                    ; 512               ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0                                                                                                                                                                                                                                                                                                        ; SoC_jtag_uart_0                   ; SoC          ;
 ;          |SoC_jtag_uart_0_scfifo_r:the_SoC_jtag_uart_0_scfifo_r|                                                                        ; 11 (0)              ; 8 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|SoC_jtag_uart_0_scfifo_r:the_SoC_jtag_uart_0_scfifo_r                                                                                                                                                                                                                                                  ; SoC_jtag_uart_0_scfifo_r          ; SoC          ;
 ;             |scfifo:rfifo|                                                                                                              ; 11 (0)              ; 8 (0)                     ; 0                 ; 0          ; 0    ; 0            ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|SoC_jtag_uart_0_scfifo_r:the_SoC_jtag_uart_0_scfifo_r|scfifo:rfifo                                                                                                                                                                                                                                     ; scfifo                            ; work         ;
@@ -420,12 +418,12 @@ Encoding Type:  One-Hot
 +----------------------------------------------+-------+
 ; Statistic                                    ; Value ;
 +----------------------------------------------+-------+
-; Total registers                              ; 212   ;
-; Number of registers using Synchronous Clear  ; 36    ;
+; Total registers                              ; 252   ;
+; Number of registers using Synchronous Clear  ; 90    ;
 ; Number of registers using Synchronous Load   ; 7     ;
 ; Number of registers using Asynchronous Clear ; 118   ;
 ; Number of registers using Asynchronous Load  ; 0     ;
-; Number of registers using Clock Enable       ; 117   ;
+; Number of registers using Clock Enable       ; 177   ;
 ; Number of registers using Preset             ; 0     ;
 +----------------------------------------------+-------+
 
@@ -437,7 +435,7 @@ Encoding Type:  One-Hot
 +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------+
 ; SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|count[9]                                                                                                                                                                                                                                ; 11      ;
 ; SoC:soc|SoC_jtag_uart_0:jtag_uart_0|t_dav                                                                                                                                                                                                                                                                                       ; 2       ;
-; SoC:soc|altera_reset_controller:rst_controller|altera_reset_synchronizer:alt_rst_sync_uq1|altera_reset_synchronizer_int_chain_out                                                                                                                                                                                               ; 106     ;
+; SoC:soc|altera_reset_controller:rst_controller|altera_reset_synchronizer:alt_rst_sync_uq1|altera_reset_synchronizer_int_chain_out                                                                                                                                                                                               ; 94      ;
 ; SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|rst2                                                                                                                                                                                                                                    ; 2       ;
 ; SoC:soc|altera_reset_controller:rst_controller|altera_reset_synchronizer:alt_rst_sync_uq1|altera_reset_synchronizer_int_chain[0]                                                                                                                                                                                                ; 1       ;
 ; SoC:soc|SoC_jtag_uart_0:jtag_uart_0|av_waitrequest                                                                                                                                                                                                                                                                              ; 9       ;
@@ -449,32 +447,25 @@ Encoding Type:  One-Hot
 +---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------+
 
 
-+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-; Multiplexer Restructuring Statistics (Restructuring Performed)                                                                                                                                                                                                                                                                                                                                                                                                                            ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output                                                                                                                                                                                                                                                                                                                                                  ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-; 3:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|count[1]                                                                                                                                                                                                                                                         ;
-; 3:1                ; 4 bits    ; 8 LEs         ; 4 LEs                ; 4 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_184_0[6]                                                                                                                                                                                                                                                                                           ;
-; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|td_shift[9]                                                                                                                                                                                                                                                      ;
-; 4:1                ; 3 bits    ; 6 LEs         ; 6 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_182_0[2]                                                                                                                                                                                                                                                                                           ;
-; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_38_0[3]                                                                                                                                                                                                                                                                                            ;
-; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_46_0[1]                                                                                                                                                                                                                                                                                            ;
-; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_81_0[0]                                                                                                                                                                                                                                                                                            ;
-; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_19_0[1]                                                                                                                                                                                                                                                                                            ;
-; 4:1                ; 4 bits    ; 8 LEs         ; 8 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_73_0[1]                                                                                                                                                                                                                                                                                            ;
-; 5:1                ; 3 bits    ; 9 LEs         ; 6 LEs                ; 3 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|td_shift[3]                                                                                                                                                                                                                                                      ;
-; 5:1                ; 4 bits    ; 12 LEs        ; 8 LEs                ; 4 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|td_shift[2]                                                                                                                                                                                                                                                      ;
-; 6:1                ; 2 bits    ; 8 LEs         ; 6 LEs                ; 2 LEs                  ; No         ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|JTAGUART:uart|state                                                                                                                                                                                                                                                                                          ;
-; 8:1                ; 2 bits    ; 10 LEs        ; 8 LEs                ; 2 LEs                  ; No         ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|JTAGUART:uart|state                                                                                                                                                                                                                                                                                          ;
-; 3:1                ; 2 bits    ; 4 LEs         ; 2 LEs                ; 2 LEs                  ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|irsr_reg[2]                             ;
-; 3:1                ; 2 bits    ; 4 LEs         ; 2 LEs                ; 2 LEs                  ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|hub_minor_ver_reg[2]                    ;
-; 3:1                ; 2 bits    ; 4 LEs         ; 2 LEs                ; 2 LEs                  ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|hub_minor_ver_reg[3]                    ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|mixer_addr_reg_internal[4]              ;
-; 4:1                ; 5 bits    ; 10 LEs        ; 10 LEs               ; 0 LEs                  ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|sld_rom_sr:hub_info_reg|word_counter[1] ;
-; 34:1               ; 4 bits    ; 88 LEs        ; 60 LEs               ; 28 LEs                 ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|design_hash_reg[1]                      ;
-; 20:1               ; 4 bits    ; 52 LEs        ; 32 LEs               ; 20 LEs                 ; Yes        ; |SocKit_golden_top|sld_hub:auto_hub|alt_sld_fab_with_jtag_input:\instrumentation_fabric_with_node_gen:fabric_gen_new_way:with_jtag_input_gen:instrumentation_fabric|alt_sld_fab:instrumentation_fabric|alt_sld_fab_alt_sld_fab:alt_sld_fab|alt_sld_fab_alt_sld_fab_sldfabric:sldfabric|sld_jtag_hub:\jtag_hub_gen:real_sld_jtag_hub|sld_rom_sr:hub_info_reg|WORD_SR[1]      ;
-+--------------------+-----------+---------------+----------------------+------------------------+------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+; Multiplexer Restructuring Statistics (Restructuring Performed)                                                                                                                                                                       ;
++--------------------+-----------+---------------+----------------------+------------------------+------------+------------------------------------------------------------------------------------------------------------------------+
+; Multiplexer Inputs ; Bus Width ; Baseline Area ; Area if Restructured ; Saving if Restructured ; Registered ; Example Multiplexer Output                                                                                             ;
++--------------------+-----------+---------------+----------------------+------------------------+------------+------------------------------------------------------------------------------------------------------------------------+
+; 3:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|count[1]    ;
+; 3:1                ; 4 bits    ; 8 LEs         ; 4 LEs                ; 4 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_171_0[0]                                      ;
+; 4:1                ; 2 bits    ; 4 LEs         ; 4 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|td_shift[8] ;
+; 4:1                ; 3 bits    ; 6 LEs         ; 6 LEs                ; 0 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_182_0[6]                                      ;
+; 4:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_38_0[2]                                       ;
+; 4:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_46_0[2]                                       ;
+; 4:1                ; 15 bits   ; 30 LEs        ; 0 LEs                ; 30 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_81_0[13]                                      ;
+; 4:1                ; 15 bits   ; 30 LEs        ; 0 LEs                ; 30 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_73_0[4]                                       ;
+; 4:1                ; 10 bits   ; 20 LEs        ; 0 LEs                ; 20 LEs                 ; Yes        ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|Top:top|v_19_0[4]                                       ;
+; 5:1                ; 3 bits    ; 9 LEs         ; 6 LEs                ; 3 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|td_shift[4] ;
+; 5:1                ; 4 bits    ; 12 LEs        ; 8 LEs                ; 4 LEs                  ; Yes        ; |SocKit_golden_top|SoC:soc|SoC_jtag_uart_0:jtag_uart_0|alt_jtag_atlantic:SoC_jtag_uart_0_alt_jtag_atlantic|td_shift[5] ;
+; 6:1                ; 2 bits    ; 8 LEs         ; 6 LEs                ; 2 LEs                  ; No         ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|JTAGUART:uart|state                                     ;
+; 8:1                ; 2 bits    ; 10 LEs        ; 8 LEs                ; 2 LEs                  ; No         ; |SocKit_golden_top|SoC:soc|BlarneyComponent:blarneycomponent_0|JTAGUART:uart|state                                     ;
++--------------------+-----------+---------------+----------------------+------------------------+------------+------------------------------------------------------------------------------------------------------------------------+
 
 
 +-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -826,75 +817,47 @@ Note: In order to hide this table in the UI and the text report file, please set
 +-----------------------+-----------------------------+
 ; Type                  ; Count                       ;
 +-----------------------+-----------------------------+
-; arriav_ff             ; 136                         ;
+; arriav_ff             ; 176                         ;
 ;     CLR               ; 31                          ;
 ;     CLR SLD           ; 7                           ;
 ;     ENA               ; 8                           ;
 ;     ENA CLR           ; 44                          ;
 ;     ENA CLR SCLR      ; 13                          ;
-;     ENA SCLR          ; 3                           ;
-;     SCLR              ; 13                          ;
-;     plain             ; 17                          ;
+;     ENA SCLR          ; 63                          ;
+;     SCLR              ; 7                           ;
+;     plain             ; 3                           ;
 ; arriav_io_obuf        ; 16                          ;
-; arriav_lcell_comb     ; 162                         ;
-;     arith             ; 31                          ;
-;         1 data inputs ; 21                          ;
+; arriav_lcell_comb     ; 230                         ;
+;     arith             ; 91                          ;
+;         1 data inputs ; 81                          ;
 ;         2 data inputs ; 10                          ;
-;     extend            ; 3                           ;
-;         7 data inputs ; 3                           ;
-;     normal            ; 120                         ;
+;     extend            ; 2                           ;
+;         7 data inputs ; 2                           ;
+;     normal            ; 117                         ;
 ;         0 data inputs ; 2                           ;
 ;         1 data inputs ; 3                           ;
-;         2 data inputs ; 9                           ;
-;         3 data inputs ; 18                          ;
-;         4 data inputs ; 21                          ;
-;         5 data inputs ; 28                          ;
+;         2 data inputs ; 7                           ;
+;         3 data inputs ; 21                          ;
+;         4 data inputs ; 18                          ;
+;         5 data inputs ; 27                          ;
 ;         6 data inputs ; 39                          ;
-;     shared            ; 8                           ;
-;         3 data inputs ; 8                           ;
+;     shared            ; 20                          ;
+;         3 data inputs ; 20                          ;
 ; boundary_port         ; 109                         ;
 ; stratixv_ram_block    ; 8                           ;
 ;                       ;                             ;
-; Max LUT depth         ; 3.30                        ;
-; Average LUT depth     ; 1.75                        ;
+; Max LUT depth         ; 4.40                        ;
+; Average LUT depth     ; 2.08                        ;
 +-----------------------+-----------------------------+
 
 
-+------------------------------------------------------------------+
-; Post-Synthesis Netlist Statistics for Partition sld_hub:auto_hub ;
-+-----------------------+------------------------------------------+
-; Type                  ; Count                                    ;
-+-----------------------+------------------------------------------+
-; arriav_ff             ; 76                                       ;
-;     CLR               ; 4                                        ;
-;     ENA               ; 30                                       ;
-;     ENA CLR           ; 19                                       ;
-;     SCLR              ; 7                                        ;
-;     plain             ; 16                                       ;
-; arriav_lcell_comb     ; 92                                       ;
-;     normal            ; 92                                       ;
-;         0 data inputs ; 1                                        ;
-;         1 data inputs ; 4                                        ;
-;         2 data inputs ; 23                                       ;
-;         3 data inputs ; 16                                       ;
-;         4 data inputs ; 14                                       ;
-;         5 data inputs ; 21                                       ;
-;         6 data inputs ; 13                                       ;
-; boundary_port         ; 89                                       ;
-;                       ;                                          ;
-; Max LUT depth         ; 3.00                                     ;
-; Average LUT depth     ; 1.49                                     ;
-+-----------------------+------------------------------------------+
-
-
-+---------------------------------+
-; Elapsed Time Per Partition      ;
-+------------------+--------------+
-; Partition Name   ; Elapsed Time ;
-+------------------+--------------+
-; Top              ; 00:00:00     ;
-; sld_hub:auto_hub ; 00:00:00     ;
-+------------------+--------------+
++-------------------------------+
+; Elapsed Time Per Partition    ;
++----------------+--------------+
+; Partition Name ; Elapsed Time ;
++----------------+--------------+
+; Top            ; 00:00:00     ;
++----------------+--------------+
 
 
 +-------------------------------+
@@ -903,7 +866,7 @@ Note: In order to hide this table in the UI and the text report file, please set
 Info: *******************************************************************
 Info: Running Quartus Prime Analysis & Synthesis
     Info: Version 16.1.0 Build 196 10/24/2016 SJ Lite Edition
-    Info: Processing started: Tue Feb 25 11:23:17 2020
+    Info: Processing started: Tue Feb 25 11:35:01 2020
 Info: Command: quartus_map --read_settings_files=on --write_settings_files=off SoCKitTop -c SoCKitTop
 Warning (18236): Number of processors has not been specified which may cause overloading on shared machines.  Set the global assignment NUM_PARALLEL_PROCESSORS in your QSF to an appropriate value for best performance.
 Info (20030): Parallel compilation is enabled and will use 4 of the 4 processors detected
@@ -1026,7 +989,7 @@ Info (12128): Elaborating entity "altera_reset_controller" for hierarchy "SoC:so
 Info (12128): Elaborating entity "altera_reset_synchronizer" for hierarchy "SoC:soc|altera_reset_controller:rst_controller|altera_reset_synchronizer:alt_rst_sync_uq1" File: /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoC/synthesis/submodules/altera_reset_controller.v Line: 208
 Info (12128): Elaborating entity "altera_reset_synchronizer" for hierarchy "SoC:soc|altera_reset_controller:rst_controller|altera_reset_synchronizer:alt_rst_req_sync_uq1" File: /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoC/synthesis/submodules/altera_reset_controller.v Line: 220
 Info (11170): Starting IP generation for the debug fabric: alt_sld_fab.
-Info (11172): 2020.02.25.11:23:32 Progress: Loading sld91d496a5/alt_sld_fab_wrapper_hw.tcl
+Info (11172): 2020.02.25.11:35:16 Progress: Loading sld91d496a5/alt_sld_fab_wrapper_hw.tcl
 Info (11172): Alt_sld_fab.alt_sld_fab: SLD fabric agents which did not specify prefer_host were connected to JTAG
 Info (11172): Alt_sld_fab: Generating alt_sld_fab "alt_sld_fab" for QUARTUS_SYNTH
 Info (11172): Alt_sld_fab: "alt_sld_fab" instantiated alt_sld_fab "alt_sld_fab"
@@ -1124,7 +1087,6 @@ Warning (13024): Output pins are stuck at VCC or GND
     Warning (13410): Pin "VGA_VS" is stuck at GND File: /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoCKitTop.v Line: 210
 Info (286031): Timing-Driven Synthesis is running on partition "Top"
 Info (17049): 22 registers lost all their fanouts during netlist optimizations.
-Info (286031): Timing-Driven Synthesis is running on partition "sld_hub:auto_hub"
 Info (16010): Generating hard_block partition "hard_block:auto_generated_inst"
     Info (16011): Adding 9 node(s), including 0 DDIO, 0 PLL, 0 transceiver and 0 LCELL
 Warning (21074): Design contains 20 input pin(s) that do not drive logic
@@ -1148,16 +1110,16 @@ Warning (21074): Design contains 20 input pin(s) that do not drive logic
     Warning (15610): No output dependent on input pin "USB_RD_n" File: /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoCKitTop.v Line: 195
     Warning (15610): No output dependent on input pin "USB_RESET_n" File: /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoCKitTop.v Line: 196
     Warning (15610): No output dependent on input pin "USB_WR_n" File: /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoCKitTop.v Line: 199
-Info (21057): Implemented 407 device resources after synthesis - the final resource count might be different
+Info (21057): Implemented 475 device resources after synthesis - the final resource count might be different
     Info (21058): Implemented 25 input pins
     Info (21059): Implemented 45 output pins
     Info (21060): Implemented 16 bidirectional pins
-    Info (21061): Implemented 312 logic cells
+    Info (21061): Implemented 380 logic cells
     Info (21064): Implemented 8 RAM segments
 Info: Quartus Prime Analysis & Synthesis was successful. 0 errors, 130 warnings
-    Info: Peak virtual memory: 1130 megabytes
-    Info: Processing ended: Tue Feb 25 11:23:42 2020
-    Info: Elapsed time: 00:00:25
-    Info: Total CPU time (on all processors): 00:00:51
+    Info: Peak virtual memory: 1131 megabytes
+    Info: Processing ended: Tue Feb 25 11:35:24 2020
+    Info: Elapsed time: 00:00:23
+    Info: Total CPU time (on all processors): 00:00:48
 
 

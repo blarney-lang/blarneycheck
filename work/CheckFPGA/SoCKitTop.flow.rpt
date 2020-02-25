@@ -1,5 +1,5 @@
 Flow report for SoCKitTop
-Tue Feb 25 11:24:45 2020
+Tue Feb 25 11:36:27 2020
 Quartus Prime Version 16.1.0 Build 196 10/24/2016 SJ Lite Edition
 
 
@@ -41,15 +41,15 @@ agreement for further details.
 +-------------------------------------------------------------------------------+
 ; Flow Summary                                                                  ;
 +---------------------------------+---------------------------------------------+
-; Flow Status                     ; Successful - Tue Feb 25 11:24:36 2020       ;
+; Flow Status                     ; Successful - Tue Feb 25 11:36:19 2020       ;
 ; Quartus Prime Version           ; 16.1.0 Build 196 10/24/2016 SJ Lite Edition ;
 ; Revision Name                   ; SoCKitTop                                   ;
 ; Top-level Entity Name           ; SocKit_golden_top                           ;
 ; Family                          ; Cyclone V                                   ;
 ; Device                          ; 5CSXFC6D6F31C8ES                            ;
 ; Timing Models                   ; Preliminary                                 ;
-; Logic utilization (in ALMs)     ; 154 / 41,910 ( < 1 % )                      ;
-; Total registers                 ; 218                                         ;
+; Logic utilization (in ALMs)     ; 190 / 41,910 ( < 1 % )                      ;
+; Total registers                 ; 261                                         ;
 ; Total pins                      ; 82 / 499 ( 16 % )                           ;
 ; Total virtual pins              ; 0                                           ;
 ; Total block memory bits         ; 512 / 5,662,720 ( < 1 % )                   ;
@@ -68,7 +68,7 @@ agreement for further details.
 +-------------------+---------------------+
 ; Option            ; Setting             ;
 +-------------------+---------------------+
-; Start date & time ; 02/25/2020 11:23:18 ;
+; Start date & time ; 02/25/2020 11:35:01 ;
 ; Main task         ; Compilation         ;
 ; Revision Name     ; SoCKitTop           ;
 +-------------------+---------------------+
@@ -79,12 +79,12 @@ agreement for further details.
 +-----------------------+-------------------------------------------------------+---------------+-------------+------------+
 ; Assignment Name       ; Value                                                 ; Default Value ; Entity Name ; Section Id ;
 +-----------------------+-------------------------------------------------------+---------------+-------------+------------+
-; COMPILER_SIGNATURE_ID ; 176527403836098.158262979821725                       ; --            ; --          ; --         ;
+; COMPILER_SIGNATURE_ID ; 176527403836098.158263050125213                       ; --            ; --          ; --         ;
 ; MISC_FILE             ; SoC/synthesis/../SoC.cmp                              ; --            ; --          ; --         ;
 ; MISC_FILE             ; SoC/synthesis/../../SoC.qsys                          ; --            ; --          ; --         ;
 ; SLD_FILE              ; SoC/synthesis/SoC.regmap                              ; --            ; --          ; --         ;
 ; SLD_FILE              ; SoC/synthesis/SoC.debuginfo                           ; --            ; --          ; --         ;
-; SLD_INFO              ; QSYS_NAME SoC HAS_SOPCINFO 1 GENERATION_ID 1582629795 ; --            ; SoC         ; --         ;
+; SLD_INFO              ; QSYS_NAME SoC HAS_SOPCINFO 1 GENERATION_ID 1582630498 ; --            ; SoC         ; --         ;
 ; SOPCINFO_FILE         ; SoC/synthesis/../../SoC.sopcinfo                      ; --            ; --          ; --         ;
 ; SYNTHESIS_ONLY_QIP    ; On                                                    ; --            ; --          ; --         ;
 ; TOP_LEVEL_ENTITY      ; SocKit_golden_top                                     ; SoCKitTop     ; --          ; --         ;
@@ -96,11 +96,11 @@ agreement for further details.
 +---------------------------+--------------+-------------------------+---------------------+------------------------------------+
 ; Module Name               ; Elapsed Time ; Average Processors Used ; Peak Virtual Memory ; Total CPU Time (on all processors) ;
 +---------------------------+--------------+-------------------------+---------------------+------------------------------------+
-; Analysis & Synthesis      ; 00:00:23     ; 1.0                     ; 1097 MB             ; 00:00:49                           ;
-; Fitter                    ; 00:00:44     ; 1.1                     ; 2210 MB             ; 00:01:23                           ;
-; Assembler                 ; 00:00:07     ; 1.0                     ; 986 MB              ; 00:00:07                           ;
-; TimeQuest Timing Analyzer ; 00:00:08     ; 1.1                     ; 1316 MB             ; 00:00:08                           ;
-; Total                     ; 00:01:22     ; --                      ; --                  ; 00:02:27                           ;
+; Analysis & Synthesis      ; 00:00:22     ; 1.0                     ; 1099 MB             ; 00:00:47                           ;
+; Fitter                    ; 00:00:45     ; 1.1                     ; 2209 MB             ; 00:01:19                           ;
+; Assembler                 ; 00:00:07     ; 1.0                     ; 979 MB              ; 00:00:07                           ;
+; TimeQuest Timing Analyzer ; 00:00:07     ; 1.2                     ; 1334 MB             ; 00:00:08                           ;
+; Total                     ; 00:01:21     ; --                      ; --                  ; 00:02:21                           ;
 +---------------------------+--------------+-------------------------+---------------------+------------------------------------+
 
 

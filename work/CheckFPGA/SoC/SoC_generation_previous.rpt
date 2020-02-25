@@ -1,0 +1,32 @@
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate /home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoC.qsys --synthesis=VERILOG --output-directory=/home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoC/synthesis --family="Cyclone V" --part=Unknown
+Progress: Loading CheckFPGA/SoC.qsys
+Progress: Reading input file
+Warning: Invalid device family name in input file: Stratix V
+Warning: Invalid device name in input file: 5SGXEA7N2F45C2
+Progress: Adding BlarneyComponent_0 [BlarneyComponent 1.0]
+Progress: Parameterizing module BlarneyComponent_0
+Progress: Adding clk_50 [clock_source 16.1]
+Progress: Parameterizing module clk_50
+Progress: Adding jtag_uart_0 [altera_avalon_jtag_uart 16.1]
+Progress: Parameterizing module jtag_uart_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: SoC.jtag_uart_0: JTAG UART IP input clock need to be at least double (2x) the operating frequency of JTAG TCK on board
+Warning: SoC.jtag_uart_0: Interrupt sender jtag_uart_0.irq is not connected to an interrupt receiver
+Info: SoC: Generating SoC "SoC" for QUARTUS_SYNTH
+Info: Interconnect is inserted between master BlarneyComponent_0.avalon_master and slave jtag_uart_0.avalon_jtag_slave because the master has address signal 3 bit wide, but the slave is 1 bit wide.
+Info: BlarneyComponent_0: "SoC" instantiated BlarneyComponent "BlarneyComponent_0"
+Info: jtag_uart_0: Starting RTL generation for module 'SoC_jtag_uart_0'
+Info: jtag_uart_0:   Generation command is [exec /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/bin/perl -I /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/europa -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/perl_lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/common -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart -- /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart/generate_rtl.pl --name=SoC_jtag_uart_0 --dir=/tmp/alt8317_119225497950464011.dir/0002_jtag_uart_0_gen/ --quartus_dir=/home/jonas/intelFPGA_lite/16.1/quartus --verilog --config=/tmp/alt8317_119225497950464011.dir/0002_jtag_uart_0_gen//SoC_jtag_uart_0_component_configuration.pl  --do_build_sim=0  ]
+Info: jtag_uart_0: Done RTL generation for module 'SoC_jtag_uart_0'
+Info: jtag_uart_0: "SoC" instantiated altera_avalon_jtag_uart "jtag_uart_0"
+Info: mm_interconnect_0: "SoC" instantiated altera_mm_interconnect "mm_interconnect_0"
+Info: rst_controller: "SoC" instantiated altera_reset_controller "rst_controller"
+Info: BlarneyComponent_0_avalon_master_translator: "mm_interconnect_0" instantiated altera_merlin_master_translator "BlarneyComponent_0_avalon_master_translator"
+Info: jtag_uart_0_avalon_jtag_slave_translator: "mm_interconnect_0" instantiated altera_merlin_slave_translator "jtag_uart_0_avalon_jtag_slave_translator"
+Info: SoC: Done "SoC" with 7 modules, 9 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

@@ -22,7 +22,7 @@
     </sld_info>
     <sld_info hpath="SoC:soc" name="soc">
       <assignment_values>
-        <assignment_value text="QSYS_NAME SoC HAS_SOPCINFO 1 GENERATION_ID 1582629795"/>
+        <assignment_value text="QSYS_NAME SoC HAS_SOPCINFO 1 GENERATION_ID 1582630498"/>
       </assignment_values>
       <parameters/>
     </sld_info>

@@ -1,10 +1,10 @@
-Analysis & Synthesis Status : Successful - Tue Feb 25 11:23:42 2020
+Analysis & Synthesis Status : Successful - Tue Feb 25 11:35:24 2020
 Quartus Prime Version : 16.1.0 Build 196 10/24/2016 SJ Lite Edition
 Revision Name : SoCKitTop
 Top-level Entity Name : SocKit_golden_top
 Family : Cyclone V
 Logic utilization (in ALMs) : N/A
-Total registers : 212
+Total registers : 252
 Total pins : 82
 Total virtual pins : 0
 Total block memory bits : 512

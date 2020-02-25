@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deploy
- date="2020.02.25.11:23:16"
+ date="2020.02.25.11:34:59"
  outputDirectory="/home/jonas/Part_II_Project/blackcheck/work/CheckFPGA/SoC/">
  <perimeter>
   <parameter
@@ -65,13 +65,13 @@
  </perimeter>
  <entity
    path=""
-   parameterizationKey="SoC:1.0:AUTO_CLK_CLOCK_DOMAIN=-1,AUTO_CLK_CLOCK_RATE=-1,AUTO_CLK_RESET_DOMAIN=-1,AUTO_DEVICE=Unknown,AUTO_DEVICE_FAMILY=Cyclone V,AUTO_DEVICE_SPEEDGRADE=,AUTO_GENERATION_ID=1582629795,AUTO_UNIQUE_ID=(BlarneyComponent:1.0:)(clock_source:16.1:clockFrequency=50000000,clockFrequencyKnown=true,inputClockFrequency=0,resetSynchronousEdges=NONE)(altera_avalon_jtag_uart:16.1:allowMultipleConnections=false,avalonSpec=2.0,clkFreq=50000000,enableInteractiveInput=false,enableInteractiveOutput=false,hubInstanceID=0,legacySignalAllow=false,readBufferDepth=64,readIRQThreshold=8,simInputCharacterStream=,simInteractiveOptions=NO_INTERACTIVE_WINDOWS,useRegistersForReadBuffer=false,useRegistersForWriteBuffer=false,useRelativePathForSimFile=false,writeBufferDepth=64,writeIRQThreshold=8)(avalon:16.1:arbitrationPriority=1,baseAddress=0x0000,defaultConnection=false)(clock:16.1:)(clock:16.1:)(reset:16.1:)(reset:16.1:)"
+   parameterizationKey="SoC:1.0:AUTO_CLK_CLOCK_DOMAIN=-1,AUTO_CLK_CLOCK_RATE=-1,AUTO_CLK_RESET_DOMAIN=-1,AUTO_DEVICE=Unknown,AUTO_DEVICE_FAMILY=Cyclone V,AUTO_DEVICE_SPEEDGRADE=,AUTO_GENERATION_ID=1582630498,AUTO_UNIQUE_ID=(BlarneyComponent:1.0:)(clock_source:16.1:clockFrequency=50000000,clockFrequencyKnown=true,inputClockFrequency=0,resetSynchronousEdges=NONE)(altera_avalon_jtag_uart:16.1:allowMultipleConnections=false,avalonSpec=2.0,clkFreq=50000000,enableInteractiveInput=false,enableInteractiveOutput=false,hubInstanceID=0,legacySignalAllow=false,readBufferDepth=64,readIRQThreshold=8,simInputCharacterStream=,simInteractiveOptions=NO_INTERACTIVE_WINDOWS,useRegistersForReadBuffer=false,useRegistersForWriteBuffer=false,useRelativePathForSimFile=false,writeBufferDepth=64,writeIRQThreshold=8)(avalon:16.1:arbitrationPriority=1,baseAddress=0x0000,defaultConnection=false)(clock:16.1:)(clock:16.1:)(reset:16.1:)(reset:16.1:)"
    instancePathKey="SoC"
    kind="SoC"
    version="1.0"
    name="SoC">
   <parameter name="AUTO_CLK_CLOCK_RATE" value="-1" />
-  <parameter name="AUTO_GENERATION_ID" value="1582629795" />
+  <parameter name="AUTO_GENERATION_ID" value="1582630498" />
   <parameter name="AUTO_DEVICE" value="Unknown" />
   <parameter name="AUTO_DEVICE_FAMILY" value="Cyclone V" />
   <parameter name="AUTO_CLK_RESET_DOMAIN" value="-1" />
@@ -205,7 +205,7 @@
    <message level="Info" culprit="BlarneyComponent_0"><![CDATA["<b>SoC</b>" instantiated <b>BlarneyComponent</b> "<b>BlarneyComponent_0</b>"]]></message>
    <message level="Debug" culprit="SoC">queue size: 2 starting:altera_avalon_jtag_uart "submodules/SoC_jtag_uart_0"</message>
    <message level="Info" culprit="jtag_uart_0">Starting RTL generation for module 'SoC_jtag_uart_0'</message>
-   <message level="Info" culprit="jtag_uart_0">  Generation command is [exec /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/bin/perl -I /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/europa -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/perl_lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/common -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart -- /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart/generate_rtl.pl --name=SoC_jtag_uart_0 --dir=/tmp/alt8317_119225497950464011.dir/0002_jtag_uart_0_gen/ --quartus_dir=/home/jonas/intelFPGA_lite/16.1/quartus --verilog --config=/tmp/alt8317_119225497950464011.dir/0002_jtag_uart_0_gen//SoC_jtag_uart_0_component_configuration.pl  --do_build_sim=0  ]</message>
+   <message level="Info" culprit="jtag_uart_0">  Generation command is [exec /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/bin/perl -I /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/europa -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/perl_lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/common -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart -- /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart/generate_rtl.pl --name=SoC_jtag_uart_0 --dir=/tmp/alt8317_913806998031832829.dir/0002_jtag_uart_0_gen/ --quartus_dir=/home/jonas/intelFPGA_lite/16.1/quartus --verilog --config=/tmp/alt8317_913806998031832829.dir/0002_jtag_uart_0_gen//SoC_jtag_uart_0_component_configuration.pl  --do_build_sim=0  ]</message>
    <message level="Info" culprit="jtag_uart_0">Done RTL generation for module 'SoC_jtag_uart_0'</message>
    <message level="Info" culprit="jtag_uart_0"><![CDATA["<b>SoC</b>" instantiated <b>altera_avalon_jtag_uart</b> "<b>jtag_uart_0</b>"]]></message>
    <message level="Debug" culprit="SoC">queue size: 1 starting:altera_mm_interconnect "submodules/SoC_mm_interconnect_0"</message>
@@ -321,7 +321,7 @@
   <messages>
    <message level="Debug" culprit="SoC">queue size: 2 starting:altera_avalon_jtag_uart "submodules/SoC_jtag_uart_0"</message>
    <message level="Info" culprit="jtag_uart_0">Starting RTL generation for module 'SoC_jtag_uart_0'</message>
-   <message level="Info" culprit="jtag_uart_0">  Generation command is [exec /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/bin/perl -I /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/europa -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/perl_lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/common -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart -- /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart/generate_rtl.pl --name=SoC_jtag_uart_0 --dir=/tmp/alt8317_119225497950464011.dir/0002_jtag_uart_0_gen/ --quartus_dir=/home/jonas/intelFPGA_lite/16.1/quartus --verilog --config=/tmp/alt8317_119225497950464011.dir/0002_jtag_uart_0_gen//SoC_jtag_uart_0_component_configuration.pl  --do_build_sim=0  ]</message>
+   <message level="Info" culprit="jtag_uart_0">  Generation command is [exec /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/bin/perl -I /home/jonas/intelFPGA_lite/16.1/quartus/linux64/perl/lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/europa -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin/perl_lib -I /home/jonas/intelFPGA_lite/16.1/quartus/sopc_builder/bin -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/common -I /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart -- /home/jonas/intelFPGA_lite/16.1/quartus/../ip/altera/sopc_builder_ip/altera_avalon_jtag_uart/generate_rtl.pl --name=SoC_jtag_uart_0 --dir=/tmp/alt8317_913806998031832829.dir/0002_jtag_uart_0_gen/ --quartus_dir=/home/jonas/intelFPGA_lite/16.1/quartus --verilog --config=/tmp/alt8317_913806998031832829.dir/0002_jtag_uart_0_gen//SoC_jtag_uart_0_component_configuration.pl  --do_build_sim=0  ]</message>
    <message level="Info" culprit="jtag_uart_0">Done RTL generation for module 'SoC_jtag_uart_0'</message>
    <message level="Info" culprit="jtag_uart_0"><![CDATA["<b>SoC</b>" instantiated <b>altera_avalon_jtag_uart</b> "<b>jtag_uart_0</b>"]]></message>
   </messages>
