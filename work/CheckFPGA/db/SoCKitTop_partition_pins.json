@@ -1,0 +1,17 @@
+{
+	"partitions" : [
+		{
+			"name" : "Top",
+			"pins" : [
+				{
+					"name" : "OSC_50_B3B",
+					"strict" : false
+				},
+				{
+					"name" : "RESET_n",
+					"strict" : false
+				}
+			]
+		}
+	]
+}
