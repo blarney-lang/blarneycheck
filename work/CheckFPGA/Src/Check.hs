@@ -7,6 +7,7 @@ module Check (
 ) where
 
 import Blarney
+import Blarney.Queue
 import Generator
 import Property
 import PureProp
