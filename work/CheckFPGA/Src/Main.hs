@@ -2,7 +2,6 @@
 import Blarney
 import Blarney.Queue
 import Blarney.Recipe
-import Blarney.Stream
 import Check
 
 -- Standard imports
