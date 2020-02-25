@@ -2,15 +2,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Src.ImpureProp where
+module ImpureProp where
 
 import Blarney
 import Blarney.Recipe
 import Blarney.Queue
-import Src.Generator
-import Src.Property
-import Src.TestBench
-import Src.Utils
+import Generator
+import Property
+import TestBench
+import Utils
 
 {-|
   Created for WhenActions Props, used as the interface to increase the depth of the sequential search

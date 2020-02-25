@@ -2,13 +2,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Src.PureProp where
+module PureProp where
 
 import Blarney
-import Src.Generator
-import Src.Property
-import Src.TestBench
-import Src.Utils
+import Generator
+import Property
+import TestBench
+import Utils
 
 
 propertyToPureTB :: Property -> Module PureTestBench

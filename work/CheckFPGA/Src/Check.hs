@@ -1,18 +1,18 @@
 {-# LANGUAGE GADTs #-}
 
-module Src.Check (
-  module Src.Generator
-, module Src.Property
-, module Src.Check
+module Check (
+  module Generator
+, module Property
+, module Check
 ) where
 
 import Blarney
-import Src.Generator
-import Src.Property
-import Src.PureProp
-import Src.ImpureProp
-import Src.TestBench
-import Src.Utils
+import Generator
+import Property
+import PureProp
+import ImpureProp
+import TestBench
+import Utils
 
 import Data.Char (ord)
 

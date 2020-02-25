@@ -2,11 +2,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Src.Property where
+module Property where
 
 import Blarney
 import Blarney.Recipe
-import Src.Generator
+import Generator
 
 
 type Property = (String, Prop)

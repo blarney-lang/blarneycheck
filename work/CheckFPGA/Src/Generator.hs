@@ -18,7 +18,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Src.Generator where
+module Generator where
 
 import Blarney
 

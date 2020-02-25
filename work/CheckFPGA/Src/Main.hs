@@ -6,7 +6,7 @@
 import Blarney
 import Blarney.Queue
 import Blarney.Stream
-import Src.Check
+import Check
 
 testBench :: Stream (Bit 8) -> Module (Stream (Bit 8))
 testBench = do  

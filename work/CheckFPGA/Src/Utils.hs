@@ -18,11 +18,11 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Src.Utils where
+module Utils where
 
 import Blarney
-import Src.Generator
-import Src.Property
+import Generator
+import Property
 
 doActionList :: [Action ()] -> Action()
 doActionList as = foldr (>>) noAction as

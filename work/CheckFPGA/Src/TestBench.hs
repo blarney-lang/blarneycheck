@@ -2,10 +2,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Src.TestBench where
+module TestBench where
 
 import Blarney
-import Src.Generator
+import Generator
 
 
 data PureTestBench = PureTestBench 
