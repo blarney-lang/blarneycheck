@@ -37,7 +37,8 @@ TEST=$(basename $FILENAME .hs)
 cd Out-Verilog
 make -s #&> /dev/null
 echo "Executed $TEST with result of:"
-./top | head -n -1
+mkdir -p ../Results/$TEST
+(time ./top | head -n -1) 2>&1 | tee "../Results/$TEST/output_$(date +"%Y_%d_%m_%H_%M_%S").txt"
 
 cd ..
 
