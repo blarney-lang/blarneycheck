@@ -89,18 +89,20 @@ makeStackSpec logSize =
 -- Top-level module
 testBench :: Module ()
 testBench = do
-  stackSpec :: Stack (Bit 3) <- makeStackSpec 10
-  stack :: Stack (Bit 3) <- makeStack 10
+  stackSpec :: Stack (Bit 3) <- makeStackSpec 5
+  stack :: Stack (Bit 3) <- makeStack 5
 
   let prop_StackPush = ("Push", Forall \x -> WhenAction 1 ((stackSpec.push) x >> (stack.push) x))
   let prop_StackPop =  ("Pop", WhenAction (stackSpec.isEmpty.inv .&. stack.isEmpty.inv) ((stackSpec.pop) >> (stack.pop)))
   --let prop_StackPop =  ("Pop", WhenRecipe (stackSpec.isEmpty.inv .&. stack.isEmpty.inv) (Par [Action (stackSpec.pop), Action (stack.pop)]))
   let prop_StackPushPopNop = ("PushPop", Forall \x -> WhenRecipe (stack.isEmpty.inv) $ Seq [Action $ (stack.push) x, Action $ stack.pop])
 
-  let prop_StackTopEq = ("StackTopEq", Assert (stackSpec.isEmpty .|. (stackSpec.top .==. stack.top)))
+  let topEq = stackSpec.top .==. stack.top
+  let prop_EmptyEq = ("EmptyEq", Assert (stackSpec.isEmpty .==. stack.isEmpty))
+  let prop_StackTopEq = ("StackTopEq", Assert (stack.isEmpty .|. topEq))
 
   let rst = (stackSpec.clear) >> (stack.clear)
-  _ <- check rst [prop_StackTopEq, prop_StackPush, prop_StackPop, prop_StackPushPopNop] 5
+  _ <- check rst [prop_StackTopEq, prop_StackPush, prop_EmptyEq, prop_StackPop] 5
 
   return ()
 
