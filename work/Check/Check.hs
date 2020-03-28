@@ -29,7 +29,7 @@ check rst props depth = do
       impureTB.displayFailImpure
       when (impureTB.depthDone) finish
     else do
-      if(impureTB.edgeDone.inv .|. pureTestsDone.val) then do
+      when (impureTB.edgeDone.inv .|. pureTestsDone.val .|. (pureTB.isDone .&. pureTB.failed.inv)) do
         if (impureTB.depthDone) then do
           _ <- display "--All tests passed to depth %0d" (impureTB.currMaxDepth) " at time %0d" (globalTime.val) "--"
           if ((impureTB.currMaxDepth) .>=. (constant (toInteger depth))) then do
@@ -41,7 +41,8 @@ check rst props depth = do
           impureTB.runEdge
           pureTestsDone <== 0
           --display "-ImpureEdge"
-      else do
+
+      when (impureTB.edgeDone .&. pureTestsDone.val.inv) do
         pureTB.increment
         pureTestsDone <== pureTB.isDone
         when (pureTB.isDone) (pureTB.reset)
