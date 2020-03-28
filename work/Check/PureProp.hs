@@ -25,7 +25,7 @@ combinePureProps :: [Property] -> Module PureTestBench
 combinePureProps pureProps = do
   combinePPs pureProps
   where
-    combinePPs [] = error "No Assert Props given"
+    combinePPs [] = error "No Assert Props given" -- Alternatively: propertyToPureTB ("True", Assert 1)
     combinePPs [prop] = propertyToPureTB prop
     combinePPs (prop:props) = do
       tb <- propertyToPureTB prop
@@ -38,6 +38,7 @@ combinePureProps pureProps = do
                            }
 
 propToPureTB :: Prop -> Module(PureTestBench)
+propToPureTB (WhenRecipe _ _) = error "WhenRecipe in Pure properties"
 propToPureTB (WhenAction _ _) = error "WhenAction in Pure properties"
 propToPureTB (Assert result) =
   return PureTestBench {

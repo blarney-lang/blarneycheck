@@ -5,8 +5,6 @@
 module Check.TestBench where
 
 import Blarney
-import Check.Generator
-
 
 data PureTestBench = PureTestBench 
     { increment :: Action ()

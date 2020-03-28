@@ -40,7 +40,7 @@ isPureProp (WhenAction _ _) = False
 isPureProp (WhenRecipe _ _) = False
 isPureProp (Assert _) = True
 isPureProp (Forall f) = isPureProp (f undefined)
-isPureProp (ForallList _ f) = isPureProp (f undefined)
+isPureProp (ForallList _ f) = isPureProp (f [undefined])
 
 splitProperties :: [Property] -> ([Property], [Property])
 splitProperties [] = ([], [])
