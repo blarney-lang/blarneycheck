@@ -5,6 +5,7 @@
 -- Successfully tested on first hot example
 
 import Blarney
+import Blarney.Recipe
 
 data Prop = Assert (Bit 1) | Forall (Bit 8 -> Prop)
 
@@ -24,13 +25,13 @@ check depth prop = (checkGenerate "" depth 0 prop)
 
 
 firstHot :: Bit 8 -> Bit 8
-firstHot x = x .&. ((inv x) .+. 1);
+firstHot x = x .&. ((inv x) .+. 1)
 
 top :: Module ()
 top = do
   let prop_HotBitCommon = Forall \x -> Assert (x .&. (firstHot x) .==. (firstHot x))
   
-  let testSeq = Par (map Action (check (2^3-1) prop_HotBitCommon))
+  let testSeq = Par (map Action (check (2^8-1) prop_HotBitCommon))
   done <- run (reg 1 0) testSeq
 
   globalTime :: Reg (Bit 32) <- makeReg 0

@@ -5,6 +5,7 @@
 -- Successfully tested on first hot example
 
 import Blarney
+import Blarney.Recipe
 
 data Prop = Assert (Bit 1) | Forall (Bit 8 -> Prop)
 
@@ -21,7 +22,7 @@ check depth prop = (checkGenerate "" depth 0 prop)
 
 
 firstHot :: Bit 8 -> Bit 8
-firstHot x = x .&. ((inv x) .+. 1);
+firstHot x = x .&. ((inv x) .+. 1)
 
 top :: Module ()
 top = do
