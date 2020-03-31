@@ -33,3 +33,23 @@ instance {-# OVERLAPPABLE #-} (SizedBits a) => Generator a where
     initial = unpack (constant 0)
     next current = unpack $ (pack current) .+. 1
     isFinal current = (pack current) .==. ones
+
+
+
+newtype RandBits a = SizedBits a deriving (Generic, Bits)
+type RandBit = Bit
+
+bitWidthToA :: Int -> Integer
+bitWidthToA sizeOfA = (2 ^ (sizeOfA `div` 2) - 1) * 4 + 1
+
+instance {-# OVERLAPPABLE #-} (SizedBits a) => Generator (RandBits a) where
+  initial = unpack $ constant 0
+  next current = let a = bitWidthToA $ valueOf @(SizeOf a)
+    in unpack $ pack current .*. (constant a) .+. 1
+  isFinal current = pack (initial :: RandBits a) .==. pack (next current)
+
+instance {-# OVERLAPPABLE #-} KnownNat n => Generator (RandBit n) where
+  initial = constant 0
+  next current = let a = bitWidthToA $ valueOf @n
+    in current .*. (constant a) .+. 1
+  isFinal current = initial .==. next current
