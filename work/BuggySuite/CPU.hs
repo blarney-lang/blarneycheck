@@ -165,11 +165,11 @@ testBench = do
   
   let prop_CPUStoreVal = Forall \(si :: StoreInstr) -> WhenRecipe 1 $ Seq [Action $ instr <== si, Action $ value <== zeroExtend (si.imm)]
   let prop_CPUAddVal = Forall \(si1 :: StoreInstr) -> Forall \(si2 :: StoreInstr) ->
-                        WhenRecipe (si1.rD .!=. si2.rD) $ Seq $ map Action [
-                          instr <== si1,
-                          instr <== si2,
-                          instr <== 4 # si1.rD # si2.rD,
-                          value <== zeroExtend (si1.imm + si2.imm) -- Bug is here, zero extend after add
+                        WhenRecipe (si1.rD .!=. si2.rD) $ Seq [
+                          Action $ instr <== si1,
+                          Action $ instr <== si2,
+                          Action $ instr <== 4 # si1.rD # si2.rD,
+                          Action $ value <== zeroExtend (si1.imm + si2.imm) -- Bug is here, zero extend after add leads to overflow
                         ]
 
   let writeActive = delay 0 (value.active)
