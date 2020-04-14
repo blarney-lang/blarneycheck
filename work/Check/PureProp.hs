@@ -18,7 +18,7 @@ propertyToPureTB (name, prop) = do
                        , isDone = tb.isDone
                        , reset = tb.reset
                        , failed = tb.failed
-                       , displayFailPure = when (tb.failed) (display_ "*** " name " ") >> (tb.displayFailPure)
+                       , displayFailPure = display_ "*** " name " " >> (tb.displayFailPure)
                        }
 
 combinePureProps :: [Property] -> Module PureTestBench
@@ -26,7 +26,9 @@ combinePureProps pureProps = do
   combinePPs pureProps
   where
     combinePPs [] = error "No Assert Props given" -- Alternatively: propertyToPureTB ("True", Assert 1)
-    combinePPs [prop] = propertyToPureTB prop
+    combinePPs [prop] = do
+      tb <- propertyToPureTB prop
+      return tb { displayFailPure = when (tb.failed) (tb.displayFailPure) }
     combinePPs (prop:props) = do
       tb <- propertyToPureTB prop
       tbOthers <- combinePPs props
@@ -34,7 +36,7 @@ combinePureProps pureProps = do
                            , isDone = tb.isDone .&. tbOthers.isDone
                            , reset = tb.reset >> tbOthers.reset
                            , failed = tb.failed .|. tbOthers.failed
-                           , displayFailPure = tb.displayFailPure >> tbOthers.displayFailPure
+                           , displayFailPure = when (tb.failed) (tb.displayFailPure) >> tbOthers.displayFailPure
                            }
 
 propToPureTB :: Prop -> Module(PureTestBench)
@@ -46,7 +48,7 @@ propToPureTB (Assert result) =
     , isDone = 1
     , reset = noAction
     , failed = inv result
-    , displayFailPure = when (inv result) (display "failed! ***")
+    , displayFailPure = display "failed! ***"
   }
 propToPureTB (Forall f) = do
     gen <- makeReg initial
@@ -67,7 +69,7 @@ propToPureTB (Forall f) = do
       , isDone = isFinal (gen.val) .&. tb.isDone
       , reset = (gen <== initial) >> tb.reset
       , failed = tb.failed
-      , displayFailPure = when (tb.failed) (display_ (pack $ gen.val) " ") >> (tb.displayFailPure)
+      , displayFailPure = display_ (pack $ gen.val) " " >> (tb.displayFailPure)
     }
 propToPureTB (ForallList maxLength f) = do
     gens <- mapM makeReg (replicate maxLength initial)
@@ -92,7 +94,7 @@ propToPureTB (ForallList maxLength f) = do
       , isDone = amFinal .&. tb.isDone
       , reset = resetRegAction >> tb.reset
       , failed = tb.failed
-      , displayFailPure = when (tb.failed) (display_ (map pack vals) " ") >> (tb.displayFailPure)
+      , displayFailPure = display_ (map pack vals) " " >> (tb.displayFailPure)
     }
 
 {-

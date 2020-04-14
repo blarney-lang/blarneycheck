@@ -74,12 +74,15 @@ propToIE maxSeq (Forall f) = do
     currMaxDepthReg :: Reg (Bit 16) <- makeReg 0
     let useQueue = currMaxDepthReg.val .>. 1
     queueOfElementsAppliedAtDepths :: Bits a => Queue a <- makeSizedQueue maxSeq
-    regOfEdgeTaken <- makeReg initial
-    let currVal = unpack (mux useQueue (pack $ queueOfElementsAppliedAtDepths.first, pack $ regOfEdgeTaken.val))
+    regOfElementApplied <- makeReg initial
+    let currVal = unpack (mux useQueue (pack $ queueOfElementsAppliedAtDepths.first, pack $ regOfElementApplied.val))
     let cycleDeq = when useQueue (queueOfElementsAppliedAtDepths.deq)
     let cycleEnq = \newVal -> do {
       if useQueue then ((queueOfElementsAppliedAtDepths.enq) newVal)
-      else (regOfEdgeTaken <== newVal)
+      else do
+        regOfElementApplied <== newVal
+        queueOfElementsAppliedAtDepths.deq
+        (queueOfElementsAppliedAtDepths.enq) initial -- Must initialise queue with initital values
     }
 
     let amFinal = isFinal currVal
@@ -111,14 +114,17 @@ propToIE maxSeq (Forall f) = do
 propToIE maxSeq (ForallList listLen f) = do
     currMaxDepthReg :: Reg (Bit 16) <- makeReg 0
     let useQueue = currMaxDepthReg.val .>. 1
-    queueOfElementsAppliedAtDepths :: Bits a => [Queue a] <- mapM makeSizedQueue (replicate listLen maxSeq)
-    regOfEdgeTaken :: Bits a => [Reg a] <- mapM makeReg (replicate listLen initial)
-    let currVal = map (\(q, r) -> unpack (mux useQueue (pack $ q.first, pack $ r.val))) (zip queueOfElementsAppliedAtDepths regOfEdgeTaken)
+    queuesOfElementsAppliedAtDepths :: Bits a => [Queue a] <- mapM makeSizedQueue (replicate listLen maxSeq)
+    regsOfElementApplied :: Bits a => [Reg a] <- mapM makeReg (replicate listLen initial)
+    let currVal = map (\(q, r) -> unpack (mux useQueue (pack $ q.first, pack $ r.val))) (zip queuesOfElementsAppliedAtDepths regsOfElementApplied)
       
-    let cycleDeq = when useQueue (doActionList (map deq queueOfElementsAppliedAtDepths))
+    let cycleDeq = when useQueue (doActionList (map deq queuesOfElementsAppliedAtDepths))
     let cycleEnq = \newVal -> do {
-      if useQueue then (doActionList (map (\(q, nV) -> (q.enq) nV) (zip queueOfElementsAppliedAtDepths newVal)))
-      else (doActionList (map (\(r, nV) -> r <== nV) (zip regOfEdgeTaken newVal)))
+      if useQueue then (doActionList (map (\(q, nV) -> (q.enq) nV) (zip queuesOfElementsAppliedAtDepths newVal)))
+      else do
+        doActionList (map (\(r, nV) -> r <== nV) (zip regsOfElementApplied newVal))
+        doActionList (map deq queuesOfElementsAppliedAtDepths)
+        doActionList (map (\q -> (q.enq) initial) queuesOfElementsAppliedAtDepths) -- Must initialise queue with initital values
     }
 
     let amFinal = andList $ map isFinal currVal
@@ -260,7 +266,7 @@ makeImpureTestBench maxDepth rst impureProps = do
 
     -- Set to 1 to run a round of Pure Prop testing before
     -- continuing to runEdge
-    runPureTests :: Reg (Bit 1) <- makeReg 1
+    runPureTests :: Wire (Bit 1) <- makeWire 0
     -- In increment phase stop incrementing as soon as
     -- we hit an edge that we can increment
     amIncrementing :: Reg (Bit 1) <- makeReg 1

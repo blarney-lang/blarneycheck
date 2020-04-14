@@ -20,8 +20,9 @@ check rst props depth = do
   pureTB <- combinePureProps asserts
   impureTB <- makeImpureTestBench depth rst sideEffects
 
+  let purePhaseDone = pureTB.isDone .&. pureTB.failed.inv
   globalTime :: Reg (Bit 32) <- makeReg 0
-  pureTestsDone :: Reg (Bit 1) <- makeReg 0
+  purePhase :: Reg (Bit 1) <- makeReg 1
   displayingFail :: Reg (Bit 1) <- makeReg 0
   allDone :: Reg (Bit 1) <- makeReg 0
   _ <- always do
@@ -29,7 +30,7 @@ check rst props depth = do
       impureTB.displayFailImpure
       when (impureTB.depthDone) finish
     else do
-      when (impureTB.edgeDone.inv .|. pureTestsDone.val .|. (pureTB.isDone .&. pureTB.failed.inv)) do
+      when (purePhase.val.inv .|. purePhaseDone) do
         if (impureTB.depthDone) then do
           _ <- display "--All tests passed to depth %0d" (impureTB.currMaxDepth) " at time %0d" (globalTime.val) "--"
           if ((impureTB.currMaxDepth) .>=. (constant (toInteger depth))) then do
@@ -39,12 +40,12 @@ check rst props depth = do
             impureTB.incMaxDepth
         else do
           impureTB.runEdge
-          pureTestsDone <== 0
+          purePhase <== impureTB.edgeDone
           --display "-ImpureEdge"
 
-      when (impureTB.edgeDone .&. pureTestsDone.val.inv) do
+      when (purePhase.val .|. impureTB.edgeDone) do
         pureTB.increment
-        pureTestsDone <== pureTB.isDone
+        purePhase <== purePhaseDone.inv
         when (pureTB.isDone) (pureTB.reset)
         when (pureTB.failed) do
           _ <- display "@ Fail at time %0d" (globalTime.val) " @"
