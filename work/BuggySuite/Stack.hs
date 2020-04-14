@@ -89,8 +89,8 @@ makeStackSpec logSize =
 -- Top-level module
 testBench :: Module ()
 testBench = do
-  stackSpec :: Stack (Bit 3) <- makeStackSpec 5
-  stack :: Stack (Bit 3) <- makeStack 5
+  stackSpec :: Stack (Bit 5) <- makeStackSpec 5
+  stack :: Stack (Bit 5) <- makeStack 5
 
   let prop_StackPush = ("Push", Forall \x -> WhenAction 1 ((stackSpec.push) x >> (stack.push) x))
   let prop_StackPop =  ("Pop", WhenAction (stackSpec.isEmpty.inv .&. stack.isEmpty.inv) ((stackSpec.pop) >> (stack.pop)))
@@ -102,7 +102,7 @@ testBench = do
   let prop_StackTopEq = ("StackTopEq", Assert (stack.isEmpty .|. topEq))
 
   let rst = (stackSpec.clear) >> (stack.clear)
-  _ <- check rst [prop_StackTopEq, prop_StackPush, prop_EmptyEq, prop_StackPop] 5
+  _ <- check rst [prop_StackTopEq, prop_EmptyEq, prop_StackPush, prop_StackPop, prop_StackPushPopNop] 6
 
   return ()
 
