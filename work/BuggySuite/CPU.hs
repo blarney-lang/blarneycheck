@@ -45,7 +45,7 @@ offset :: Instr -> Bit 4
 offset instr = slice @5 @2 instr
 
 -- CPU
-makeCPU :: Instr -> Module (Bit 8)
+makeCPU :: Instr -> Module (RegId, Bit 8)
 makeCPU instrMem = do
   -- Instruction memory
   -- instrMem :: RAM (Bit 8) Instr <- makeRAMInit "instrs.hex"
@@ -146,9 +146,13 @@ makeCPU instrMem = do
         store regFileA (instr.val.rD) (result.val)
         store regFileB (instr.val.rD) (result.val)
         --display "%08d" (count.val) ": rf[%0d]" (instr.val.rD) " := 0x%02x" (result.val)
-  return (result.val)
+  return (instr.val.rD, result.val)
 
-instance Generator Instr where
+
+-- Instruction Args
+type StoreInstr = Instr
+
+instance Generator StoreInstr where
   initial = constant 0
   next current = current + 1
   isFinal current = slice @5 @0 current .==. ones
@@ -156,15 +160,22 @@ instance Generator Instr where
 testBench :: Module ()
 testBench = do
   instr :: Wire Instr <- makeWire 0
-  value :: Wire (Bit 4) <- makeWire 0
-  result <- makeCPU (instr.val)
+  value :: Wire (Bit 8) <- makeWire 0
+  (destReg, result) <- makeCPU (instr.val)
   
-  let prop_CPUStoreOne = ("Store", Forall \(ins :: Instr) -> WhenRecipe 1 $ Seq [Action $ instr <== ins, Action $ value <== ins.imm])
+  let prop_CPUStoreVal = Forall \(si :: StoreInstr) -> WhenRecipe 1 $ Seq [Action $ instr <== si, Action $ value <== zeroExtend (si.imm)]
+  let prop_CPUAddVal = Forall \(si1 :: StoreInstr) -> Forall \(si2 :: StoreInstr) ->
+                        WhenRecipe (si1.rD .!=. si2.rD) $ Seq $ map Action [
+                          instr <== si1,
+                          instr <== si2,
+                          instr <== 4 # si1.rD # si2.rD,
+                          value <== zeroExtend (si1.imm + si2.imm) -- Bug is here, zero extend after add
+                        ]
 
   let writeActive = delay 0 (value.active)
-  let prop_ResultOne = ("ResultOne", Assert (writeActive.inv .|. (slice @3 @0 result .==. value.val.old)))
+  let prop_ResultEqual = Assert (writeActive.inv .|. (result .==. value.val.old))
 
-  _ <- check noAction [prop_ResultOne, prop_CPUStoreOne] 3
+  _ <- check noAction [("Result Correct", prop_ResultEqual), ("Store", prop_CPUStoreVal), ("Add", prop_CPUAddVal)] 2
   
   return ()
 
