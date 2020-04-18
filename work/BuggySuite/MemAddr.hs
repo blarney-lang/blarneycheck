@@ -14,7 +14,7 @@ testBench :: Module ()
 testBench = do
   let prop_MRGT10 = ("MemAddr GT10", Forall \(mr :: MemAddr) -> Assert (slice @11 @0 (pack mr) .==. ones))
 
-  _ <- check noAction [prop_MRGT10] 0
+  _ <- checkPure [prop_MRGT10]
   
   return ()
 

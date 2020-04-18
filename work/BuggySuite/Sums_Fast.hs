@@ -30,7 +30,7 @@ testBench = do
   let prop_Commutativity1 = ("Commutativity1", Forall \((Lower x) :: Lower 15) -> Forall \(y :: Bit 15) -> Assert (commutativity x y))
   let prop_Commutativity2 = ("Commutativity2", Forall \((Upper x) :: Upper 15) -> Forall \(y :: Bit 15) -> Assert (commutativity x y))
   
-  _ <- check noAction [prop_Associativity1, prop_Associativity2, prop_Commutativity1, prop_Commutativity2] 0
+  _ <- checkPure [prop_Associativity1, prop_Associativity2, prop_Commutativity1, prop_Commutativity2]
   
   return ()
 

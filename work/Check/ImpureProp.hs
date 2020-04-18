@@ -77,7 +77,7 @@ propToIE maxSeq (Forall f) inList = do
     let useQueue = currMaxDepthReg.val .>. 1
     queueOfElementsAppliedAtDepths :: Bits a => Queue a <- makeSizedQueue maxSeq
     regOfElementApplied <- makeReg initial
-    let currVal = unpack (mux useQueue (pack $ queueOfElementsAppliedAtDepths.first, pack $ regOfElementApplied.val))
+    let currVal = useQueue ? (queueOfElementsAppliedAtDepths.first, regOfElementApplied.val)
     let cycleDeq = when useQueue (queueOfElementsAppliedAtDepths.deq)
     let cycleEnq = \newVal -> do {
       if useQueue then ((queueOfElementsAppliedAtDepths.enq) newVal)
@@ -127,50 +127,6 @@ propToIE maxSeq (ForallList listLen f) inList = do
     (ie.increaseDepthDisplay) disp
   }
 
-{-
-instance ImpureProp (Bit 1, Recipe) where
-  iPropToTB _ (guardAct, impureRecipe) = do
-    executingEdge <- makeReg 0
-    execEdge <- makeReg 0
-    edgeDone <- run (execEdge.val) impureRecipe
-    return ImpureEdge {
-        increaseDepthExec = \disp -> \exec -> \_ -> do
-          when (disp) (display "\t[Executed: " guardAct "]")
-          when (exec .&. guardAct .&. executingEdge.val.inv) do
-            display "Starting edge"
-            executingEdge <== 1
-            execEdge <== 1
-          when (executingEdge.val) do
-            when (edgeDone.inv) (display "Not ending edge")
-            when edgeDone (display "Ending edge")
-            executingEdge <== edgeDone.inv
-            execEdge <== 0
-      , depthIncDone = edgeDone .|. (guardAct.inv)
-      , increaseDepthInc = \_ -> \_ -> noAction
-      , edgeExhaused = 1
-      , increaseMaxDepth = noAction
-    }
-instance (Generator a, ImpureProp b) => ImpureProp (Int, [a] -> b) where
-  iPropToTB maxDepth (listLen, f) = do
-    if (maxDepth == 0) then do
-      let appliedVal = replicate listLen initial
-      ie <- iPropToTB maxDepth (f appliedVal)
-      return ImpureEdge {
-          increaseDepthExec = \disp -> \exec -> do
-            when disp (display_ (map pack appliedVal) " ")
-            (ie.increaseDepthExec) disp exec
-        , depthIncDone = ie.depthIncDone
-        , increaseDepthInc = ie.increaseDepthInc
-        , edgeExhaused = ie.edgeExhaused
-        , increaseMaxDepth = ie.increaseMaxDepth
-      }
-    else do
-      
--}
-
-
-
-
 propsToEdgesWithSelect :: KnownNat n => Int -> [Property] -> Module(Bit n -> ImpureEdge)
 propsToEdgesWithSelect maxSeq props = do
   allEdges <- propsToEdges props
@@ -198,6 +154,8 @@ propsToEdgesWithSelect maxSeq props = do
                     }
           edges <- propsToEdges xs
           return (edge:edges)
+
+
 
 
 

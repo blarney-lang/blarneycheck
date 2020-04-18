@@ -15,7 +15,7 @@ testBench = do
   let prop_HotBitCommon = ("HotBitCommon", Forall \(x :: Bit 28) -> Assert (x .&. (firstHot x) .==. (firstHot x)))
   let prop_HotBitFirst =  ("HotBitFirst",  Forall \(x :: Bit 28) -> Assert (x .&. ((firstHot x) - 1) .==. 0))
   
-  _ <- check noAction [prop_OneIsHot, prop_HotBitCommon, prop_HotBitFirst] 0
+  _ <- checkPure [prop_OneIsHot, prop_HotBitCommon, prop_HotBitFirst]
   
   return ()
 

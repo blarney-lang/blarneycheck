@@ -27,7 +27,7 @@ testBench = do
   let prop_Sorted = ("Sorted", ForallList 25 \(xs :: [Bit 1]) -> Assert (isSorted $ sort xs))
   --let prop_Sorted = ("Sorted", ForallList 6 \(xs :: [Bit 1]) -> Assert ((andList xs).inv))
   
-  _ <- check noAction [prop_Sorted] 0
+  _ <- checkPure [prop_Sorted]
   
   return ()
 

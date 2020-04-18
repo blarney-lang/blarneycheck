@@ -13,7 +13,7 @@ testBench = do
   let prop_Associativity = ("Associativity", Forall \(x :: Bit 10) -> Forall \(y :: Bit 10) -> Forall \(z :: Bit 10) -> Assert (associativity x y z))
   let prop_Commutativity = ("Commutativity", Forall \(x :: Bit 15) -> Forall \(y :: Bit 15) -> Assert (commutativity x y))
   
-  _ <- check noAction [prop_Associativity, prop_Commutativity] 0
+  _ <- checkPure [prop_Associativity, prop_Commutativity]
   
   return ()
 
