@@ -20,17 +20,19 @@ check rst props depth = do
   pureTB <- combinePureProps asserts
   impureTB <- makeImpureTestBench depth rst sideEffects
 
-  let purePhaseDone = pureTB.isDone .&. pureTB.failed.inv
+  let fail = pureTB.failed
+  let purePhaseDone = pureTB.isDone .&. fail.inv
   globalTime :: Reg (Bit 32) <- makeReg 0
-  purePhase :: Reg (Bit 1) <- makeReg 1
+  purePhase :: Wire (Bit 1) <- makeWire 1
   displayingFail :: Reg (Bit 1) <- makeReg 0
   allDone :: Reg (Bit 1) <- makeReg 0
   _ <- always do
     if (displayingFail.val) then do
       impureTB.displayFailImpure
-      when (impureTB.depthDone) finish
+      when (impureTB.depthDone) finish -- Maybe check here that fail is true again, if not may have been a problem with rst instead!
     else do
-      when (purePhase.val.inv .|. purePhaseDone) do
+      purePhase <== purePhase.val.(delay 0) ? (purePhaseDone.inv, impureTB.edgeDone)
+      when (purePhase.val.inv) do -- TODO: Run this when in increment phase during pure checks
         if (impureTB.depthDone) then do
           _ <- display "--All tests passed to depth %0d" (impureTB.currMaxDepth) " at time %0d" (globalTime.val) "--"
           if ((impureTB.currMaxDepth) .>=. (constant (toInteger depth))) then do
@@ -40,14 +42,13 @@ check rst props depth = do
             impureTB.incMaxDepth
         else do
           impureTB.runEdge
-          purePhase <== impureTB.edgeDone
           --display "-ImpureEdge"
 
-      when (purePhase.val .|. impureTB.edgeDone) do
-        pureTB.increment
-        purePhase <== purePhaseDone.inv
-        when (pureTB.isDone) (pureTB.reset)
-        when (pureTB.failed) do
+      when (purePhase.val .|. pureTB.isDone) do
+        --display "-- Tick --"
+        when (fail.inv) do
+          pureTB.increment -- Implicitly resets when isDone
+        when (fail) do
           _ <- display "@ Fail at time %0d" (globalTime.val) " @"
           pureTB.displayFailPure
           displayingFail <== 1

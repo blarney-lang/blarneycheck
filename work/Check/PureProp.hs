@@ -13,13 +13,8 @@ import Check.Utils
 
 propertyToPureTB :: Property -> Module PureTestBench
 propertyToPureTB (name, prop) = do
-  tb <- propToPureTB prop
-  return PureTestBench { increment = tb.increment
-                       , isDone = tb.isDone
-                       , reset = tb.reset
-                       , failed = tb.failed
-                       , displayFailPure = display_ "*** " name " " >> (tb.displayFailPure)
-                       }
+  tb <- propToPureTB prop False
+  return tb { displayFailPure = display_ "*** " name >> (tb.displayFailPure) }
 
 combinePureProps :: [Property] -> Module PureTestBench
 combinePureProps pureProps = do
@@ -34,68 +29,42 @@ combinePureProps pureProps = do
       tbOthers <- combinePPs props
       return PureTestBench { increment = tb.increment >> tbOthers.increment
                            , isDone = tb.isDone .&. tbOthers.isDone
-                           , reset = tb.reset >> tbOthers.reset
                            , failed = tb.failed .|. tbOthers.failed
                            , displayFailPure = when (tb.failed) (tb.displayFailPure) >> tbOthers.displayFailPure
                            }
 
-propToPureTB :: Prop -> Module(PureTestBench)
-propToPureTB (WhenRecipe _ _) = error "WhenRecipe in Pure properties"
-propToPureTB (WhenAction _ _) = error "WhenAction in Pure properties"
-propToPureTB (Assert result) =
+propToPureTB :: Prop -> Bool -> Module(PureTestBench)
+propToPureTB (WhenRecipe _ _) _ = error "WhenRecipe in Pure properties"
+propToPureTB (WhenAction _ _) _ = error "WhenAction in Pure properties"
+propToPureTB (Assert result) _ =
   return PureTestBench {
     increment = noAction
     , isDone = 1
-    , reset = noAction
     , failed = inv result
-    , displayFailPure = display "failed! ***"
+    , displayFailPure = display " failed! ***"
   }
-propToPureTB (Forall f) = do
-    gen <- makeReg initial
-    tb <- propToPureTB (f $ gen.val)
-    let incrementAction = do {
-      if (isFinal $ gen.val) then do
-        if tb.isDone
-          then
-            noAction
-          else do
-            (gen <== initial)
-            tb.increment
-      else do
-        gen <== (next $ gen.val)
-    }
-    return PureTestBench { 
+propToPureTB (Forall (f :: a -> Prop)) inList = do
+  gen :: Reg a <- makeReg initial
+  tb <- propToPureTB (f $ gen.val) inList
+  let amFinal = (gen.val :: a).isFinal
+  let nextVal = amFinal ? (initial, gen.val.next)
+  let incrementAction = do { do
+    gen <== nextVal
+    when amFinal $ tb.increment
+  }
+  return PureTestBench { 
       increment = incrementAction
-      , isDone = isFinal (gen.val) .&. tb.isDone
-      , reset = (gen <== initial) >> tb.reset
-      , failed = tb.failed
-      , displayFailPure = display_ (pack $ gen.val) " " >> (tb.displayFailPure)
-    }
-propToPureTB (ForallList maxLength f) = do
-    gens <- mapM makeReg (replicate maxLength initial)
-    let vals = map val gens
-    let resetRegAction = doActionList (map (\(r, nV) -> r <== nV) (zip gens (replicate maxLength initial)))
-    let incRegAction = doActionList (map (\(r, nV) -> r <== nV) (zip gens (incrementGenList vals)))
-    let amFinal = andList $ map isFinal vals
-    tb <- propToPureTB (f vals)
-    let incrementAction = do {
-      if (amFinal) then do
-        if tb.isDone
-          then
-            noAction
-          else do
-            resetRegAction
-            tb.increment
-      else do
-        incRegAction
-    }
-    return PureTestBench { 
-      increment = incrementAction
-      , isDone = amFinal .&. tb.isDone
-      , reset = resetRegAction >> tb.reset
-      , failed = tb.failed
-      , displayFailPure = display_ (map pack vals) " " >> (tb.displayFailPure)
-    }
+    , isDone = amFinal .&. tb.isDone
+    , failed = tb.failed
+    , displayFailPure = display_ " " (pack $ gen.val) >> (tb.displayFailPure)
+  }
+propToPureTB (ForallList 0 f) _ = do
+  tb <- propToPureTB (f []) False
+  return tb {displayFailPure = display_ "]" >> tb.displayFailPure}
+propToPureTB (ForallList maxLength f) inList = do
+  tb <- propToPureTB (Forall $ \x -> ForallList (maxLength - 1) $ \xs -> f (x:xs)) True
+  let delimiter = if inList then "," else " ["
+  return tb {displayFailPure = display_ delimiter >> tb.displayFailPure}
 
 {-
 instance (PureProp a) => PureProp [a] where

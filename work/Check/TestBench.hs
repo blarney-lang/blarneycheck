@@ -9,10 +9,9 @@ import Blarney
 data PureTestBench = PureTestBench 
     { increment :: Action ()
     , isDone :: Bit 1
-    , reset :: Action ()
     , failed :: Bit 1
     , displayFailPure :: Action ()
-    } deriving (Generic, Interface)
+    }
 
 
 data ImpureTestBench = ImpureTestBench 
@@ -27,7 +26,7 @@ data ImpureTestBench = ImpureTestBench
     , currMaxDepth :: Bit 16
     -- Display last executed sequence, keep running until depthDone
     , displayFailImpure :: Action ()
-    } deriving (Generic, Interface)
+    }
 
 
 

@@ -35,12 +35,13 @@ data ImpureEdge = ImpureEdge
     , increaseMaxDepth :: Action ()
     }
 
-propToIE :: Int -> Prop -> Module(ImpureEdge)
-propToIE _ (Assert _) = error "Assert in Impure Props"
-propToIE _ (WhenAction guardBit impureAction) = 
+propToIE :: Int -> Prop -> Bool -> Module(ImpureEdge)
+propToIE _ (Assert _) _ = error "Assert in Impure Props"
+propToIE _ (WhenAction guardBit impureAction) _ = 
     return ImpureEdge {
         increaseDepthDisplay = \disp -> do
-          when (disp) (display "    \t[Executed: " guardBit "]")
+          when (disp .&. guardBit.inv) (display_ "    \t[Prevented by guard bit]")
+          when (disp) (display_ "\n")
       , execImpure = \exec -> do
           when (exec .&. guardBit) impureAction
       , depthIncDone = 1
@@ -48,13 +49,14 @@ propToIE _ (WhenAction guardBit impureAction) =
       , edgeExhaused = 1
       , increaseMaxDepth = noAction
     }
-propToIE _ (WhenRecipe guardBit impureRecipe) = do
+propToIE _ (WhenRecipe guardBit impureRecipe) _ = do
     executingEdge <- makeReg 0
     execEdge <- makeReg 0
     myEdgeDone <- run (execEdge.val) impureRecipe
     return ImpureEdge {
         increaseDepthDisplay = \disp -> do
-          when (disp) (display "    \t[Executed: " guardBit "]")
+          when (disp .&. guardBit.inv) (display_ "    \t[Prevented by guard bit]")
+          when (disp) (display_ "\n")
       , execImpure = \exec -> do
           when (exec .&. guardBit .&. executingEdge.val.inv) do
             --when disp (display "Starting edge")
@@ -70,7 +72,7 @@ propToIE _ (WhenRecipe guardBit impureRecipe) = do
       , edgeExhaused = 1
       , increaseMaxDepth = noAction
     }
-propToIE maxSeq (Forall f) = do
+propToIE maxSeq (Forall f) inList = do
     currMaxDepthReg :: Reg (Bit 16) <- makeReg 0
     let useQueue = currMaxDepthReg.val .>. 1
     queueOfElementsAppliedAtDepths :: Bits a => Queue a <- makeSizedQueue maxSeq
@@ -96,10 +98,10 @@ propToIE maxSeq (Forall f) = do
         else
           cycleEnq currVal
     }
-    ie <- propToIE maxSeq (f currVal)
+    ie <- propToIE maxSeq (f currVal) inList
     return ImpureEdge {
         increaseDepthDisplay = \disp -> do
-          when disp (display_ (pack currVal) " ")
+          when disp (display_ " " (pack currVal))
           (cycleQueue 0 0)
           (ie.increaseDepthDisplay) disp
       , execImpure = ie.execImpure
@@ -111,48 +113,19 @@ propToIE maxSeq (Forall f) = do
           cycleEnq initial
           ie.increaseMaxDepth
     }
-propToIE maxSeq (ForallList listLen f) = do
-    currMaxDepthReg :: Reg (Bit 16) <- makeReg 0
-    let useQueue = currMaxDepthReg.val .>. 1
-    queuesOfElementsAppliedAtDepths :: Bits a => [Queue a] <- mapM makeSizedQueue (replicate listLen maxSeq)
-    regsOfElementApplied :: Bits a => [Reg a] <- mapM makeReg (replicate listLen initial)
-    let currVal = map (\(q, r) -> unpack (mux useQueue (pack $ q.first, pack $ r.val))) (zip queuesOfElementsAppliedAtDepths regsOfElementApplied)
-      
-    let cycleDeq = when useQueue (doActionList (map deq queuesOfElementsAppliedAtDepths))
-    let cycleEnq = \newVal -> do {
-      if useQueue then (doActionList (map (\(q, nV) -> (q.enq) nV) (zip queuesOfElementsAppliedAtDepths newVal)))
-      else do
-        doActionList (map (\(r, nV) -> r <== nV) (zip regsOfElementApplied newVal))
-        doActionList (map deq queuesOfElementsAppliedAtDepths)
-        doActionList (map (\q -> (q.enq) initial) queuesOfElementsAppliedAtDepths) -- Must initialise queue with initital values
-    }
-
-    let amFinal = andList $ map isFinal currVal
-    let cycleQueue = \inc -> \rst -> do {
-      cycleDeq
-    ; if (rst .|. (inc .&. amFinal)) then
-        cycleEnq (replicate listLen initial)
-      else
-        if inc then
-          cycleEnq (incrementGenList currVal)
-        else
-          cycleEnq currVal
-    }
-    ie <- propToIE maxSeq (f currVal)
-    return ImpureEdge {
-        increaseDepthDisplay = \disp -> do
-          when disp (display_ (map pack currVal) " ")
-          (cycleQueue 0 0)
-          (ie.increaseDepthDisplay) disp
-      , execImpure = ie.execImpure
-      , depthIncDone = ie.depthIncDone
-      , increaseDepthInc = \inc -> \rst -> cycleQueue inc rst >> (ie.increaseDepthInc) (inc .&. amFinal) rst
-      , edgeExhaused = amFinal .&. ie.edgeExhaused
-      , increaseMaxDepth = do
-          currMaxDepthReg <== currMaxDepthReg.val + 1
-          cycleEnq (replicate listLen initial)
-          ie.increaseMaxDepth
-    }
+propToIE maxSeq (ForallList 0 f) _ = do
+  ie <- propToIE maxSeq (f []) False
+  return ie { increaseDepthDisplay = \disp -> do
+    when disp (display_ "]")
+    (ie.increaseDepthDisplay) disp
+  }
+propToIE maxSeq (ForallList listLen f) inList = do
+  ie <- propToIE maxSeq (Forall $ \x -> ForallList (listLen - 1) $ \xs -> f (x:xs)) True
+  let delimiter = if inList then "," else " ["
+  return ie { increaseDepthDisplay = \disp -> do
+    when disp (display_ delimiter)
+    (ie.increaseDepthDisplay) disp
+  }
 
 {-
 instance ImpureProp (Bit 1, Recipe) where
@@ -212,10 +185,10 @@ propsToEdgesWithSelect maxSeq props = do
   })
   where propsToEdges [] = return []
         propsToEdges ((name, prop):xs) = do
-          ie <- propToIE maxSeq prop
+          ie <- propToIE maxSeq prop False
           let edge = ImpureEdge {
                         increaseDepthDisplay = \disp -> do
-                          when disp (display_ name " ")
+                          when disp (display_ name)
                           (ie.increaseDepthDisplay) disp
                       , execImpure = ie.execImpure
                       , depthIncDone = ie.depthIncDone
@@ -351,7 +324,7 @@ makeImpureTestBench maxDepth rst impureProps = do
           when shouldIncDepth do
             (edges.increaseDepthDisplay) 0
             (cycleEnq selectBits)
-    , edgeDone = (runPureTests.val) .&. edges.depthIncDone
+    , edgeDone = (runPureTests.val.old) .&. edges.depthIncDone
     -- When all possibilities to current depth exhausted
     -- depthDone = 1 & incMaxDepth must be called
     , incMaxDepth = do
