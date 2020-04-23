@@ -47,3 +47,36 @@ splitProperties [] = ([], [])
 splitProperties (property@(_, prop):props) = 
   let (pures, impures) = splitProperties props
   in if (isPureProp prop) then (property:pures, impures) else (pures, property:impures)
+
+
+getCases :: Prop -> Integer
+getCases (WhenAction _ _) = 1
+getCases (WhenRecipe _ _) = 1
+getCases (Assert _) = 1
+getCases (Forall (f :: a -> Prop)) = getCases (f undefined) * (range @a)
+getCases (ForallList n (f :: [a] -> Prop)) = getCases (f [undefined]) * ((range @a) ^ n)
+
+containsWhenRecipe :: [Property] -> Bool
+containsWhenRecipe props = foldl (||) (False) $ map (\(_, p) -> isWhenRecipe p) props
+  where isWhenRecipe (WhenAction _ _) = False
+        isWhenRecipe (WhenRecipe _ _) = True
+        isWhenRecipe (Assert _) = False
+        isWhenRecipe (Forall f) = isWhenRecipe (f undefined)
+        isWhenRecipe (ForallList _ f) = isWhenRecipe (f [undefined])
+
+type Time = (Integer, Integer, Integer, Integer)
+clocksToTimes :: Integer -> Integer -> Time
+clocksToTimes clks perSecond = (miliseconds `div` (36*10^5), (miliseconds `div` 60000) `rem` 60, (miliseconds `div` 1000) `rem` 60, miliseconds `rem` 1000)
+  where miliseconds = (clks * 1000) `div` perSecond
+
+displayTime :: Time -> Action ()
+displayTime (hrs, mins, secs, milis) = do
+  if (hrs /= 0) then display_ hrs "h " else noAction
+  if (mins /= 0) then display_ mins "m " else noAction
+  display_ secs "." milis "s"
+
+displayClkFreq :: Integer -> Action ()
+displayClkFreq freq =
+  if (freq `rem` 10^3 /= 0) then display_ freq "Hz" else
+  if (freq `rem` 10^6 /= 0) then display_ (freq `div` 10^3) "kHz" else
+  display_ (freq `div` 10^6) "MHz"
