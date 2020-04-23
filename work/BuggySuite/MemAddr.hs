@@ -9,12 +9,15 @@ instance Generator MemAddr where
   initial = unpack (constant $ 2^12-1)
   next current = unpack $ pack current + (constant $ 2^12)
   isFinal current = pack current .==. ones
+  range = 2^29
 
 testBench :: Module ()
 testBench = do
-  let prop_MRGT10 = ("MemAddr GT10", Forall \(mr :: MemAddr) -> Assert (slice @11 @0 (pack mr) .==. ones))
+  let prop_MRGT10 = Forall \(ma :: MemAddr) -> Assert (slice @11 @0 (pack ma) .==. ones)
+  let properties = [("MemAddr GT10", prop_MRGT10)]
 
-  _ <- checkPure [prop_MRGT10]
+  _ <- checkPure properties
+  --estimateTestCaseCount properties 0
   
   return ()
 

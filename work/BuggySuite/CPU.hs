@@ -150,12 +150,13 @@ makeCPU instrMem = do
 
 
 -- Instruction Args
-type StoreInstr = Instr
+newtype StoreInstr = StoreInstr Instr deriving (Generic, Bits)
 
 instance Generator StoreInstr where
-  initial = constant 0
-  next current = current + 1
-  isFinal current = slice @5 @0 current .==. ones
+  initial = unpack $ constant 0
+  next current = unpack $ pack current + 1
+  isFinal current = slice @5 @0 (pack current) .==. ones
+  range = 2^6
 
 testBench :: Module ()
 testBench = do
@@ -163,19 +164,27 @@ testBench = do
   value :: Wire (Bit 8) <- makeWire 0
   (destReg, result) <- makeCPU (instr.val)
   
-  let prop_CPUStoreVal = Forall \(si :: StoreInstr) -> WhenRecipe 1 $ Seq [Action $ instr <== si, Action $ value <== zeroExtend (si.imm)]
-  let prop_CPUAddVal = Forall \(si1 :: StoreInstr) -> Forall \(si2 :: StoreInstr) ->
+  let prop_CPUStoreVal = Forall \(StoreInstr si :: StoreInstr) -> WhenRecipe 1 $ 
+                            Seq [Action $ instr <== si,
+                                 Action $ value <== zeroExtend (si.imm)]
+  let prop_CPUAddVal = Forall \(StoreInstr si1 :: StoreInstr) -> Forall \(StoreInstr si2 :: StoreInstr) ->
                         WhenRecipe (si1.rD .!=. si2.rD) $ Seq [
-                          Action $ instr <== si1,
-                          Action $ instr <== si2,
-                          Action $ instr <== 4 # si1.rD # si2.rD,
-                          Action $ value <== zeroExtend (si1.imm + si2.imm) -- Bug is here, zero extend after add leads to overflow
+                          Action $ (instr <== si1),
+                          Action $ (instr <== si2),
+                          Action $ (instr <== 4 # si1.rD # si2.rD),
+                          Action $ (value <== zeroExtend ((si1.imm) + (si2.imm))) -- Bug is here, zero extend after add leads to overflow
                         ]
 
-  let writeActive = delay 0 (value.active)
+  let writeActive = value.active.(delay 0)
   let prop_ResultEqual = Assert (writeActive.inv .|. (result .==. value.val.old))
+  let properties = [
+          ("Result Correct", prop_ResultEqual)
+        , ("Store", prop_CPUStoreVal)
+        , ("Add", prop_CPUAddVal)
+        ]
 
-  _ <- check noAction [("Result Correct", prop_ResultEqual), ("Store", prop_CPUStoreVal), ("Add", prop_CPUAddVal)] 2
+  _ <- check properties noAction 1
+  --estimateTestCaseCount properties 1
   
   return ()
 

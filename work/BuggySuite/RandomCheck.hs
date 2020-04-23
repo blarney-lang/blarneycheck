@@ -1,21 +1,39 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PolyKinds #-}
+
 import Blarney
 import Check.Check
 
-newtype MyRandBit n = MyRandBit (RandBit n) deriving (Generic, Bits)
-instance Cmp (MyRandBit n) where
-  (MyRandBit a) .==. (MyRandBit b) = a .==. b
+newtype CustomRandBit n = CustomRandBit (Bit n) deriving (Generic, Bits)
 
-instance KnownNat n => Generator (MyRandBit n) where
-  initial = MyRandBit $ constant 123
-  next (MyRandBit bit) = MyRandBit $ next bit
-  isFinal current = initial .==. (next current)
+instance KnownNat n => Generator (CustomRandBit n) where
+  initial = unpack $ constant 0x0
+  next (CustomRandBit bit) = CustomRandBit $ pack $ next $ (unpack bit :: RandBits (Bit n) (Seed 196 1))
+  isFinal current = pack (initial :: CustomRandBit n) .==. current.next.pack
+  range = 2^(valueOf @n)
 
+-- For "RandBits (Bit n) (Seed i s)":
+--  Nat 'i' is initial value
+--  Nat 's' is seed for ordering values
+-- In general there are 2^(n-2)-1 possible orderings thus 0 <= 's' < 2^(n-2)-1
+-- For larger 's' >= 2^(n-2)-1 + m, with m >= 0, ordering will be same as if 's' = m
+-- Note that, although pseudo-random, the order of the lowest 4 bits is rarely affected by 's' values
+-- Also note that when 's' = 2^(n-2)-n, the order is the same as the normal generator: +1
 testBench :: Module ()
 testBench = do
-  let prop_DisplayCustom = ("DisplayCustom", Forall \(mrb :: MyRandBit 8) -> WhenAction 1 (display "Mrb: " $ pack mrb))
-  let prop_Display = ("Display", Forall \(rb :: RandBit 8) -> WhenAction 1 (display "Rb: " rb))
+  let prop_DisplayCustom  = Forall \(CustomRandBit crb :: CustomRandBit 8) -> WhenAction 1 $ display_ crb ", "
+  let prop_DisplayBuiltin = Forall \(brb :: RandBits (Bit 8) (Seed 0xc4 1)) -> WhenAction 1 $ display_ (pack brb) ", "
 
-  _ <- check noAction [prop_DisplayCustom, ("True", Assert 1)] 1
+  let properties = [
+          ("New Line", WhenAction 1 $ display "Custom Random:")
+        , ("Display Custom Random", prop_DisplayCustom)
+        , ("New Line", WhenAction 1 $ display "\n\nBuiltin Random:")
+        , ("Display Builtin Random", prop_DisplayBuiltin)
+        , ("True", Assert 1)
+        ]
+
+  _ <- check properties noAction 1
+  --estimateTestCaseCount properties 1
   
   return ()
 

@@ -24,10 +24,13 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 
 testBench :: Module ()
 testBench = do
-  let prop_Sorted = ("Sorted", ForallList 25 \(xs :: [Bit 1]) -> Assert (isSorted $ sort xs))
-  --let prop_Sorted = ("Sorted", ForallList 6 \(xs :: [Bit 1]) -> Assert ((andList xs).inv))
-  
-  _ <- checkPure [prop_Sorted]
+  let prop_Sorted = ForallList 25 \(xs :: [Bit 1]) -> Assert (isSorted $ sort xs)
+  --let prop_Sorted = ForallList 6 \(xs :: [Bit 1]) -> Assert ((andList xs).inv)
+
+  let properties = [("Sorted", prop_Sorted)]
+
+  _ <- checkPure properties
+  --estimateTestCaseCount properties 0
   
   return ()
 

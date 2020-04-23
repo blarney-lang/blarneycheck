@@ -11,11 +11,18 @@ countOnes b = countOnesDown (widthOf b - 1)
 
 testBench :: Module ()
 testBench = do
-  let prop_OneIsHot =     ("OneIsHot",     Forall \(x :: Bit 28) -> Assert (Main.countOnes (firstHot x) .==. ((x .==. 0) ? (0, 1))))
-  let prop_HotBitCommon = ("HotBitCommon", Forall \(x :: Bit 28) -> Assert (x .&. (firstHot x) .==. (firstHot x)))
-  let prop_HotBitFirst =  ("HotBitFirst",  Forall \(x :: Bit 28) -> Assert (x .&. ((firstHot x) - 1) .==. 0))
+  let prop_OneIsHot =     Forall \(x :: Bit 28) -> Assert (countOnes (firstHot x) .==. (x .==. 0) ? (0, 1))
+  let prop_HotBitCommon = Forall \(x :: Bit 28) -> Assert (x .&. (firstHot x) .==. (firstHot x))
+  let prop_HotBitFirst =  Forall \(x :: Bit 28) -> Assert (x .&. ((firstHot x) - 1) .==. 0)
   
-  _ <- checkPure [prop_OneIsHot, prop_HotBitCommon, prop_HotBitFirst]
+  let properties = [
+          ("OneIsHot", prop_OneIsHot)
+        , ("HotBitCommon", prop_HotBitCommon)
+        , ("HotBitFirst", prop_HotBitFirst)
+        ]
+
+  _ <- checkPure properties
+  --estimateTestCaseCount properties 0
   
   return ()
 
