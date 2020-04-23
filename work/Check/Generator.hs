@@ -5,14 +5,8 @@
 -- Do we need to support user defined data?
 -- Need some way to guarantee that 't' can be stored in a register(s?), how to do for lists?
 
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE BlockArguments         #-}
-{-# LANGUAGE DataKinds              #-}
-{-# LANGUAGE NoImplicitPrelude      #-}
-{-# LANGUAGE DeriveGeneric          #-}
-{-# LANGUAGE DeriveAnyClass         #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
@@ -25,32 +19,46 @@ import Blarney
 type SizedBits a = (Bits a, KnownNat (SizeOf a))
 
 class SizedBits a => Generator a where
-    initial :: a
-    next :: a -> a
-    isFinal :: a -> (Bit 1)
+  initial :: a
+  next :: a -> a
+  isFinal :: a -> (Bit 1)
+  -- Only used for calculating cycles required for testing, does not need to be defined:
+  range :: forall a'. (a' ~ a) => Integer
 
 instance {-# OVERLAPPABLE #-} (SizedBits a) => Generator a where
-    initial = unpack (constant 0)
-    next current = unpack $ (pack current) .+. 1
-    isFinal current = (pack current) .==. ones
+  initial = unpack (constant 0)
+  next current = unpack $ (pack current) .+. 1
+  isFinal current = (pack current) .==. ones
+  range = 2^valueOf @(SizeOf a)
 
 
+-- For "RandBits (Bit n) (Seed i s)":
+--  Nat 'i' is initial value
+--  Nat 's' is seed for ordering values
+-- In general there are 2^(n-2)-1 possible orderings thus 0 <= 's' < 2^(n-2)-1
+-- For larger 's' >= 2^(n-2)-1 + m, with m >= 0, ordering will be same as if 's' = m
+-- Note that, although pseudo-random, the order of the lowest 4 bits is rarely affected by 's' values
+-- Also note that when 's' = 2^(n-2)-n, the order is the same as the normal generator: +1
+newtype RandBits a s = SizedBits a deriving (Generic, Bits)
 
-newtype RandBits a = SizedBits a deriving (Generic, Bits)
---type RandBit a = Bit a
+data Seed (i :: Nat) (s :: Nat)
 
-bitWidthToA :: Int -> Integer
-bitWidthToA sizeOfA = (2 ^ (sizeOfA `div` 2) - 1) * 4 + 1
+seedToA :: forall n s. (KnownNat n, KnownNat s) => Integer
+seedToA = seed * 4 + 1
+  where seed = toInteger ((valueOf @s + valueOf @n - 1) `mod` (2 ^ (max 2 $ valueOf @n - 2) - 1))
 
-instance {-# OVERLAPPABLE #-} (SizedBits a) => Generator (RandBits a) where
-  initial = unpack $ constant 0
-  next current = let a = bitWidthToA $ valueOf @(SizeOf a)
+instance {-# OVERLAPPABLE #-} (SizedBits b, KnownNat i, KnownNat s) => Generator (RandBits b (Seed i s)) where
+  initial = unpack $ constant $ toInteger (valueOf @i) `mod` (2 ^ valueOf @(SizeOf b))
+  next current = let a = seedToA @(SizeOf b) @s
     in unpack $ pack current .*. (constant a) .+. 1
-  isFinal current = pack (initial :: RandBits a) .==. pack (next current)
-{-
-instance {-# OVERLAPPABLE #-} KnownNat n => Generator (RandBit n) where
-  initial = constant 0
-  next current = let a = bitWidthToA $ valueOf @n
-    in current .*. (constant a) .+. 1
-  isFinal current = initial .==. next current
--}
+  isFinal current = pack (initial :: RandBits b (Seed s)) .==. pack (next current)
+  range = 2^valueOf @(SizeOf b)
+
+{-}
+newtype RandBit n (s :: Nat) = RandBit (Bit n) deriving (Generic, Bits)
+
+instance KnownNat n => Generator (CustomRandBit n) where
+  initial = unpack $ constant 0x0
+  next (CustomRandBit bit) = CustomRandBit $ pack $ next $ (unpack bit :: RandBits (Bit n) (seed 1))
+  isFinal current = pack (initial :: CustomRandBit n) .==. current.next.pack
+  range = 2^(valueOf @n)-}
