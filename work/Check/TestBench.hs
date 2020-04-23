@@ -6,27 +6,34 @@ module Check.TestBench where
 
 import Blarney
 
-data PureTestBench = PureTestBench 
-    { increment :: Action ()
-    , isDone :: Bit 1
-    , failed :: Bit 1
-    , displayFailPure :: Action ()
-    }
+data PureTestBench = PureTestBench { 
+    increment :: Action ()
+  , isDone :: Bit 1
+  , failed :: Bit 1
+  , displayFail :: Action ()
+}
 
 
-data ImpureTestBench = ImpureTestBench 
-    -- Traverse one edge, until edgeDone is 1
-    { runEdge :: Action ()
-    , edgeDone :: Bit 1
-    -- When all possibilities to current depth exhausted
-    -- depthDone = 1 & incMaxDepth must be called
-    , incMaxDepth :: Action ()
-    , depthDone :: Bit 1
-    -- Get the current max depth we are testing
-    , currMaxDepth :: Bit 16
-    -- Display last executed sequence, keep running until depthDone
-    , displayFailImpure :: Action ()
-    }
+data ImpureTestBench = ImpureTestBench { 
+  -- Execute WhenAction or WhenRecipe (traversing one edge)
+  -- If Bit is high then execute with incremented value (normal execution)
+  -- Else don't inc but display value (when printing failing case)
+    execImpureEdge :: Action ()
+  -- When high effects of Execution are visible -> can execute next edge or start pure testing
+  , finishedExec :: Bit 1
+  -- High when executed last element of sequence, must reset after this
+  , sequenceDone :: Bit 1
+  -- High when at the final seqence length
+  , displaySeqLen :: Action ()
+  -- When pure testing is done, reset to depth 0
+  , reset :: Action ()
+  -- When all possibilities to current sequence length exhausted
+  -- allSeqExec will be high & incSeqLen must be called
+  , incSeqLen :: Action ()
+  , allSeqExec :: Bit 1
+  -- High when at the final seqence length
+  , atMaxSeqLen :: Bit 1
+}
 
 
 
