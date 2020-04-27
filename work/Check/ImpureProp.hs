@@ -26,12 +26,13 @@ data ImpureEdge = ImpureEdge {
   -- Second Bit 1 indicated if this edge should run it's impure Action
   -- (should only be set on one IpureEdge at a time)
 
-  --    Decrement   Increment  Execute
-    execImpure :: Bit 1 -> Bit 1 -> Bit 1 -> Action ()
+    execImpure :: Bit 1 -> Action ()
+  , incEdge :: Bit 1 -> Action ()
   , displayValue :: Bit 1 -> Action ()
   , doneExec :: Bit 1
 
-  , edgeExhausted :: Bit 1
+  , edgeExhausted :: Bit 1 -- If the last value executed was final
+  , execFinal :: Bit 1 -- If the value just executed was final
   
   -- Usually includes enqueueing one extra element in depth queue
   , incEdgeSeqLen :: Action ()
@@ -41,13 +42,15 @@ propToIE :: Int -> Prop -> Bool -> Module(ImpureEdge)
 propToIE _ (Assert _) _ = error "Assert in Impure Props"
 propToIE _ (WhenAction guardBit impureAction) _ = 
     return ImpureEdge {
-        execImpure = \_ -> \_ -> \exec -> do
+        execImpure = \exec -> do
           --when (exec) (display_ "WA")
           when (exec .&. guardBit) impureAction
+      , incEdge = \_ -> noAction
       , displayValue = \disp -> do
-          when (disp .&. guardBit.inv) (display_ "\t[Blocked by Guard]")
+          when (disp .&. guardBit.inv .&. 0) (display_ "\t[Blocked by Guard]")
       , doneExec = 1
       , edgeExhausted = 1
+      , execFinal = 1
       , incEdgeSeqLen = noAction
     }
 propToIE _ (WhenRecipe guardBit impureRecipe) _ = do
@@ -58,63 +61,54 @@ propToIE _ (WhenRecipe guardBit impureRecipe) _ = do
       when (execEdge.val) (executing <== 1)
       when (myEdgeDone) (executing <== 0)
     return ImpureEdge {
-        execImpure = \_ -> \_ -> \exec -> do
+        execImpure = \exec -> do
           --when (exec) (display_ "WR")
           when (exec .&. guardBit) do
             --display_ "^^"
             execEdge <== 1
+      , incEdge = \_ -> noAction
       , displayValue = \disp -> do
-          when (disp .&. guardBit.inv) (display_ "\t[Blocked by Guard]")
+          when (disp .&. guardBit.inv .&. 0) (display_ "\t[Blocked by Guard]")
       , doneExec = myEdgeDone .|. (executing.val.inv) .|. (guardBit.inv.old)
       , edgeExhausted = 1
+      , execFinal = 1
       , incEdgeSeqLen = noAction
     }
 propToIE maxSeqLen (Forall f) inList = liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy n) -> do
     currSeqLen :: Reg (Bit n) <- makeReg 0
-    init :: Reg (Bit 1) <- makeReg 0
 
     let useQueue = if (maxSeqLen == 1) then 0 else currSeqLen.val .>. 1
-    prevAppliedValsQueue :: Bits a => Queue a <- makeSizedQueue maxSeqLen
-    prevAppliedVal <- makeReg initial
-    valAppliedReg <- makeReg initial
-    appliedNow <- makeWire 0
-    decrement <- makeWire 0
-    let oldVal = useQueue ? (prevAppliedValsQueue.first, prevAppliedVal.val)
+    appliedValsQueue :: Bits a => Queue a <- makeSizedQueue maxSeqLen
+    appliedValReg <- makeReg initial
+    incVal <- makeWire (dontCare :: Bit 1)
+    let oldVal = useQueue ? (appliedValsQueue.first, appliedValReg.val)
+        oldFinal = isFinal oldVal
+        nextVal = oldFinal ? (initial, next oldVal)
+        currVal = incVal.active ? (incVal.val ? (nextVal, oldVal), appliedValReg.val)
 
-    let cycleDeq = prevAppliedValsQueue.deq
+    let cycleDeq = when useQueue do appliedValsQueue.deq
     let cycleEnq = \newVal -> do
-        (prevAppliedValsQueue.enq) newVal
-        prevAppliedVal <== newVal
+        when useQueue do (appliedValsQueue.enq) newVal
+        appliedValReg <== newVal
 
-    let oldFinal = isFinal oldVal
-    let nextVal = (init.val .&. decrement.val.inv) ? (oldFinal ? (initial, next oldVal), oldVal)
-    let valApplied = appliedNow.val ? (nextVal, valAppliedReg.val)
     let cycleQueue = \inc -> do
         cycleDeq
-        if (inc) then do
-          init <== 1
-          cycleEnq nextVal
-        else
-          cycleEnq oldVal
+        cycleEnq (inc ? (nextVal, oldVal))
+        incVal <== inc
     
-    ie <- propToIE maxSeqLen (f valApplied) inList
-    return ImpureEdge {
-        execImpure = \dec -> \inc -> \exec -> do
+    ie <- propToIE maxSeqLen (f currVal) inList
+    return ie {
+        incEdge = \inc -> do
           cycleQueue inc
-          when (exec) do
-            decrement <== dec
-            valAppliedReg <== nextVal
-            appliedNow <== 1
-          (ie.execImpure) (dec .&. valApplied.isFinal) (inc .&. valApplied.isFinal) exec
+          (ie.incEdge) (inc .&. oldFinal)
       , displayValue = \disp -> do
-          when disp (display_ " 0x" (pack valApplied))
+          when disp (display_ " 0x" (pack currVal))
           (ie.displayValue) disp
-      , doneExec = ie.doneExec
-      , edgeExhausted = valApplied.isFinal .&. ie.edgeExhausted
+      , edgeExhausted = oldFinal .&. ie.edgeExhausted
+      , execFinal = isFinal currVal .&. ie.execFinal
       , incEdgeSeqLen = do
           currSeqLen <== currSeqLen.val + 1
-          cycleEnq (prevAppliedVal.val) -- Enqueue final value so that next value is initial
-          when (currSeqLen.val .==. 1) cycleDeq
+          when (useQueue) do cycleEnq currVal
           ie.incEdgeSeqLen
     }
 propToIE maxSeqLen (ForallList 0 f) _ = do
@@ -137,26 +131,20 @@ propsToEdgesWithSelect props maxSeqLen = do
   return (\oldIdx -> \idx -> 
     ImpureEdge {
       execImpure = sel idx (map execImpure allEdges)
+    , incEdge = sel oldIdx (map incEdge allEdges)
     , displayValue = sel idx (map displayValue allEdges)
-    , doneExec = sel oldIdx (map doneExec allEdges)
-    --, increaseDepthInc = sel idx_new (map increaseDepthInc allEdges)
-    , edgeExhausted = sel idx (map edgeExhausted allEdges)
+    , doneExec = sel idx (map doneExec allEdges)
+    , edgeExhausted = sel oldIdx (map edgeExhausted allEdges)
+    , execFinal = sel idx (map execFinal allEdges)
     , incEdgeSeqLen = sel idx (map incEdgeSeqLen allEdges)
   })
   where propsToEdges [] = return []
         propsToEdges ((name, prop):xs) = do
           ie <- propToIE maxSeqLen prop False
-          let edge = ImpureEdge {
-                        execImpure = ie.execImpure
-                      , displayValue = \disp -> do
-                          when disp (display_ name)
-                          (ie.displayValue) disp
-                      , doneExec = ie.doneExec
-                      --, increaseDepthInc = ie.increaseDepthInc
-                      , edgeExhausted = ie.edgeExhausted
-                      , incEdgeSeqLen = ie.incEdgeSeqLen
-                    }
           edges <- propsToEdges xs
+          let edge = ie { displayValue = \disp -> do
+                          when disp (display_ name)
+                          (ie.displayValue) disp }
           return (edge:edges)
 
 
@@ -178,68 +166,64 @@ makeImpureTestBench impureProps rst maxSeqLen failed =
     -- Is 1 when we have reached the curr max depth
     let isAtFinalDepth = currDepth.val .==. currSeqLen.val
 
-    incNextDepth :: Reg (Bit 1) <- makeReg 1
+    incNextDepth :: Reg (Bit 1) <- makeReg 0 -- Keep at 1 if next depth should also be incremented
+    allEdgesFinal :: Reg (Bit 1) <- makeReg 1 -- Used to detect that all sequences of len 'currSeqLen' tested
 
-    queueOfEdgesTaken :: Queue (Bit w) <- makeSizedQueue maxSeqLen
-    regOfEdgeTaken :: Reg (Bit w) <- makeReg edgesWidth
-    depthIncTo :: Reg (Bit h) <- makeReg 0
-    valAppliedReg <- makeReg 0
-    let oldVal = useQueue ? (queueOfEdgesTaken.first, regOfEdgeTaken.val)
-
-    let cycleDeq = queueOfEdgesTaken.deq
-    let cycleEnq = \newVal -> do
-        (queueOfEdgesTaken.enq) newVal
-        regOfEdgeTaken <== newVal
-
-    let oldFinal = oldVal .==. edgesWidth
-    let nextValNoFail = oldFinal ? (0, oldVal + 1)
-    let nextVal = (failed .&. incNextDepth.val .&. (depthIncTo.val .>. currDepth.val)) ? (oldVal, nextValNoFail)
-    let cycleQueue = \inc -> do
-        cycleDeq
-        if (inc) then do
-          cycleEnq nextVal
-        else
-          cycleEnq oldVal
+    edgesTakenQueue :: Queue (Bit w) <- makeSizedQueue maxSeqLen
+    edgeTakenReg :: Reg (Bit w) <- makeReg 0
+    let oldEdge = useQueue ? (edgesTakenQueue.first, edgeTakenReg.val)
+        oldFinal = oldEdge .==. edgesWidth
+        nextEdge = oldFinal ? (0, oldEdge + 1)
 
     edgesWithSelect <- propsToEdgesWithSelect impureProps maxSeqLen
+    let incEdgeIdx = failed.inv .&. incNextDepth.val .&. edge.edgeExhausted
+        currEdge = incEdgeIdx ? (nextEdge, oldEdge)
+        edge = edgesWithSelect oldEdge currEdge
 
-    let edge = edgesWithSelect (valAppliedReg.val) nextVal
-    let depthExhausted = edge.edgeExhausted .&. (nextVal .==. edgesWidth)
+    let cycleDeq = when useQueue do edgesTakenQueue.deq
+    let cycleEnq = \newVal -> do
+        when useQueue do (edgesTakenQueue.enq) newVal
+        edgeTakenReg <== newVal
+
+    let depthExhausted = incEdgeIdx .&. oldFinal
+    let currFinal = currEdge .==. edgesWidth
 
     return ImpureTestBench {
       execImpureEdge = do
         when (edge.doneExec) do
           currDepth <== nextDepth
 
+          cycleDeq
+          cycleEnq currEdge
+
           --when failed (display_ "Revert:" revertEdge ", di:" (depthEdgesIncTo.val) ", ")
           --when (incNextDepth.val) (display_ "@" nextVal "@")
-          (edge.execImpure) (failed .&. incNextDepth.val) (failed.inv .&. incNextDepth.val) 1 -- Writes current/next value to wire
+          (edge.incEdge) (failed.inv .&. incNextDepth.val)
+          (edge.execImpure) 1
           (edge.displayValue) (failed .|. isDebug)
-          cycleQueue (edge.edgeExhausted .&. incNextDepth.val)
-          valAppliedReg <== nextVal
-          when (failed.inv) do
-            if (incNextDepth.val .&. edge.edgeExhausted) then do
-              depthIncTo <== nextDepth
-            else do depthIncTo <== (depthIncTo.val .>. currDepth.val) ? (currDepth.val, depthIncTo.val)
-          incNextDepth <== incNextDepth.val .&. edge.edgeExhausted .&. depthExhausted
+          
+          incNextDepth <== depthExhausted
+          --when isDebug do display_ " ###" (oldEdge) "-" (edge.edgeExhausted) "-" (currEdge) "-" (incNextDepth.val) "-" depthExhausted "### "
+          allEdgesFinal <== edge.execFinal .&. currFinal .&. allEdgesFinal.val
     , finishedExec = edge.doneExec
     , sequenceDone = isAtFinalDepth
     , displaySeqLen = display_ "%0d" (currSeqLen.val)
     , reset = do
         rst
         currDepth <== 0
-        incNextDepth <== 1
+        -- Don't increment the first sequence of lengths 1 and 2, since they start at 0s, others start at final val so inc those
+        incNextDepth <== (allEdgesFinal.val.inv .|. useQueue)
+        allEdgesFinal <== 1
     -- When all possibilities to current depth exhausted
     -- depthDone = 1 & incMaxDepth must be called
     , incSeqLen = do -- TODO
         _ <- display_ "- All tests passed to depth %0d" (currSeqLen.val)
         -- Enqueue to queues
         edge.incEdgeSeqLen
-        when (useQueue.inv) (cycleDeq)
-        cycleEnq edgesWidth
+        cycleEnq (edgeTakenReg.val)
         -- Initialise values
         currSeqLen <== currSeqLen.val + 1
-    , allSeqExec = incNextDepth.val .&. isAtFinalDepth
+    , allSeqExec = allEdgesFinal.val .&. isAtFinalDepth
     -- High when at the final seqence length
     , atMaxSeqLen = currSeqLen.val .==. maxSeqLen.toInteger.constant
     -- Get the current max depth we are testing
