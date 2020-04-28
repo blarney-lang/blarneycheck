@@ -39,6 +39,7 @@ isPureProp :: Prop -> Bool
 isPureProp (WhenAction _ _) = False
 isPureProp (WhenRecipe _ _) = False
 isPureProp (Assert _) = True
+isPureProp (Assert' _ _) = True
 isPureProp (Forall f) = isPureProp (f undefined)
 isPureProp (ForallList _ f) = isPureProp (f [undefined])
 
@@ -53,6 +54,7 @@ getCases :: Prop -> Integer
 getCases (WhenAction _ _) = 1
 getCases (WhenRecipe _ _) = 1
 getCases (Assert _) = 1
+getCases (Assert' _ _) = 1
 getCases (Forall (f :: a -> Prop)) = getCases (f undefined) * (range @a)
 getCases (ForallList n (f :: [a] -> Prop)) = getCases (f [undefined]) * ((range @a) ^ n)
 
@@ -61,6 +63,7 @@ containsWhenRecipe props = foldl (||) (False) $ map (\(_, p) -> isWhenRecipe p) 
   where isWhenRecipe (WhenAction _ _) = False
         isWhenRecipe (WhenRecipe _ _) = True
         isWhenRecipe (Assert _) = False
+        isWhenRecipe (Assert' _ _) = False
         isWhenRecipe (Forall f) = isWhenRecipe (f undefined)
         isWhenRecipe (ForallList _ f) = isWhenRecipe (f [undefined])
 

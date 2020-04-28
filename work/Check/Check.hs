@@ -22,15 +22,15 @@ checkPure props = let (pureProps, impureProps) = splitProperties props in
     always do
       globalTime <== globalTime.val + 1
       when (pureTB.failed.inv) do
-        when isDebug do display_ "Pass: " >> pureTB.displayFail >> display_ "\n"
+        when isDebug do display_ "Pass: " >> displayFail pureTB >> display_ "\n"
         when (pureTB.isDone) do
           _ <- display "--All tests passed at time %0d" (globalTime.val) "--"
           allDone <== 1
           finish
-        pureTB.increment
+        increment pureTB
       when (pureTB.failed) do
         _ <- display "@ Fail at time %0d" (globalTime.val) " @"
-        pureTB.displayFail
+        displayFail pureTB
         finish
     return (allDone.val)
 
@@ -48,8 +48,8 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
   failTime :: Reg (Bit 32) <- makeReg 0
   pureTB <- combinePureProps pureProps
 
-  impureTB <- makeImpureTestBench impureProps rst maxSeqLen (displayingFail.val)
-  let startPureTests = impureTB.sequenceDone .&. impureTB.finishedExec
+  stateTester <- makeImpureTestBench impureProps rst maxSeqLen (displayingFail.val)
+  let startPureTests = stateTester.sequenceDone .&. stateTester.finishedExec
   let purePhase = purePhaseReg.val .|. startPureTests
 
   always do
@@ -57,53 +57,52 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
     if (displayingFail.val) then do
       failTime <== failTime.val + 1
       display_ "%0d: " (failTime.val)
-      if (impureTB.sequenceDone .&. impureTB.finishedExec) then do
+      if (stateTester.sequenceDone .&. stateTester.finishedExec) then do
         -- Check that pure test bench still fails after replaying sequence
-        if (pureTB.failed) then (display_ "'" >> pureTB.displayFail >> display "' fails" :: Action ())
+        if (pureTB.failed) then (display_ "'" >> displayFail pureTB >> display "' fails" :: Action ())
         else (display "Failure was not observed when replaying sequence! Reset may be incorrect")
         allDone <== 1
       else do
-        when (impureTB.finishedExec) (impureTB.execImpureEdge)
-        when (impureTB.finishedExec.inv) (display_ "(Waiting for Recipe)")
+        when (stateTester.finishedExec) do execImpureEdge stateTester
+        when (stateTester.finishedExec.inv) do display_ "(Waiting for Recipe)"
         display_ "\n"
     else do
       if purePhase then do
         if (pureTB.failed) then do
-          when (isDebug) do display_ "\n"
-          display_ "=== Found failing case at depth " >> (impureTB.displaySeqLen) >> display_ " after %0d ticks" (globalTime.val) ": " >> pureTB.displayFail >> display " ==="
-          impureTB.reset
+          when isDebug do display_ "\n"
+          display_ "=== Found failing case at depth " >> displaySeqLen stateTester
+          display_ " after %0d ticks" (globalTime.val) ": " >> displayFail pureTB >> display " ==="
+          reset stateTester
           displayingFail <== 1
         else do
           when (isDebug) do 
             disableDebug <== 0
-            display_ "Pass: " >> pureTB.displayFail
-          pureTB.increment -- Implicitly resets when isDone
+            display_ "Pass: " >> displayFail pureTB
+          increment pureTB -- Implicitly resets when isDone
           purePhaseReg <== pureTB.isDone.inv
-          when (pureTB.isDone) do impureTB.reset
-          when (pureTB.isDone .&. impureTB.allSeqExec) do
+          when (pureTB.isDone) do reset stateTester
+          when (pureTB.isDone .&. stateTester.allSeqExec) do
             when (isDebug) do
               disableDebug <== 1
               display_ "\n"
-            if (impureTB.atMaxSeqLen) then do
-              display_ "=== All tests passed to maximum specified depth of " >> (impureTB.displaySeqLen) >> display " at time %0d" (globalTime.val) " ==="
+            if (stateTester.atMaxSeqLen) then do
+              display_ "=== All tests passed to maximum specified depth of " >> displaySeqLen stateTester
+              display " at time %0d" (globalTime.val) " ==="
               allDone <== 1
             else do
-              impureTB.incSeqLen
+              incSeqLen stateTester
               display " at time %0d" (globalTime.val) " -"
       else do
         when (isDebug) do
           disableDebug <== 0
-          when (impureTB.finishedExec.inv) do display_ "(Waiting)"
-        impureTB.execImpureEdge
+          when (stateTester.finishedExec.inv) do display_ "(Waiting)"
+        execImpureEdge stateTester
   
   always do
     when (isDebug .&. disableDebug.val.inv) do
       display_ "\t| "
       when (purePhase .&. pureTB.isDone) do display_ "\n"
     globalTime <== globalTime.val + 1
-    --when (globalTime.val .==. 3000) do
-      --display "~"
-      --finish
   return (allDone.val)
 
 

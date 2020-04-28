@@ -23,29 +23,32 @@ combinePureProps pureProps = do
     combinePPs [] _ _ = error "No Assert Props given" -- Alternatively: propertyToPureTB ("True", Assert 1)
     combinePPs [prop] failSig doneSig = do
       tb <- propertyToPureTB prop
-      return (PureTestBench { increment = when (tb.isDone.inv .|. doneSig) (tb.increment)
+      return (PureTestBench { increment = when (tb.isDone.inv .|. doneSig) do increment tb
                             , isDone = tb.isDone .&. doneSig
                             , failed = tb.failed
-                            , displayFail = when (tb.failed .|. failSig.inv) (tb.displayFail) 
+                            , displayFail = when (tb.failed .|. failSig.inv) do displayFail tb 
                             }, failSig .|. tb.failed)
     combinePPs (prop:props) failSig doneSig = do
       tb <- propertyToPureTB prop
       (tbOthers, anyFail) <- combinePPs props (failSig .|. tb.failed) (tb.isDone .&. doneSig)
       return (PureTestBench { increment = do
-                                when (tb.isDone.inv .|. tbOthers.isDone) (tb.increment)
-                                tbOthers.increment
+                                when (tb.isDone.inv .|. tbOthers.isDone) do increment tb
+                                increment tbOthers
                             , isDone = tb.isDone .&. tbOthers.isDone
                             , failed = tb.failed .|. tbOthers.failed
                             , displayFail = do
                                 when (tb.failed .|. anyFail.inv) do
-                                  tb.displayFail
+                                  displayFail tb
                                   when (tbOthers.failed .|. anyFail.inv) do display_ ", "
-                                tbOthers.displayFail
+                                displayFail tbOthers
                             }, anyFail)
 
 propToPureTB :: Prop -> Bool -> Module(PureTestBench)
 propToPureTB (WhenRecipe _ _) _ = error "WhenRecipe in Pure properties"
 propToPureTB (WhenAction _ _) _ = error "WhenAction in Pure properties"
+propToPureTB (Assert' result disp) _ = do
+  ptb <- propToPureTB (Assert result) False
+  return ptb { displayFail = display_ " {" >> disp >> display_ "}" }
 propToPureTB (Assert result) _ =
   return PureTestBench {
     increment = noAction
@@ -57,36 +60,21 @@ propToPureTB (Forall (f :: a -> Prop)) inList = do
   gen :: Reg a <- makeReg initial
   tb <- propToPureTB (f $ gen.val) inList
   let amFinal = gen.val.isFinal
-  let nextVal = amFinal ? (initial, gen.val.next)
-  let incrementAction = do { do
-    gen <== nextVal
-    when amFinal $ tb.increment
-  }
+      nextVal = amFinal ? (initial, gen.val.next)
+  let incrementAction = do
+        gen <== nextVal
+        when amFinal do increment tb
+  
   return PureTestBench { 
       increment = incrementAction
     , isDone = amFinal .&. tb.isDone
     , failed = tb.failed
-    , displayFail = display_ " 0x" (pack $ gen.val) >> (tb.displayFail)
+    , displayFail = display_ " 0x" (gen.val.pack) >> displayFail tb
   }
 propToPureTB (ForallList 0 f) _ = do
   tb <- propToPureTB (f []) False
-  return tb {displayFail = display_ "]" >> tb.displayFail}
+  return tb {displayFail = display_ "]" >> displayFail tb}
 propToPureTB (ForallList maxLength f) inList = do
   tb <- propToPureTB (Forall $ \x -> ForallList (maxLength - 1) $ \xs -> f (x:xs)) True
   let delimiter = if inList then "," else " ["
-  return tb {displayFail = display_ delimiter >> tb.displayFail}
-
-{-
-instance (PureProp a) => PureProp [a] where
-  pPropToTB [] = error "Must specify at least one Pure Property to test!"
-  pPropToTB [x] = pPropToTB x
-  pPropToTB (x:xs) = do
-    tb <- pPropToTB x
-    tbOthers <- pPropToTB xs
-    return PureTestBench { increment = tb.increment >> tbOthers.increment
-                         , isDone = tb.isDone .&. tbOthers.isDone
-                         , reset = tb.reset >> tbOthers.reset
-                         , failed = tb.failed .|. tbOthers.failed
-                         , displayFail = tb.displayFail >> tbOthers.displayFail
-                         }
--}
+  return tb { displayFail = display_ delimiter >> displayFail tb }
