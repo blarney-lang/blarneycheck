@@ -30,7 +30,7 @@ checkPure props = let (pureProps, impureProps) = splitProperties props in
         increment pureTB
       when (pureTB.failed) do
         _ <- display "@ Fail at time %0d" (globalTime.val) " @"
-        displayFail pureTB
+        displayFail pureTB >> display_ "\n"
         finish
     return (allDone.val)
 
