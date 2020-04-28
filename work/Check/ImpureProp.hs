@@ -74,12 +74,12 @@ propToIE _ (WhenRecipe guardBit impureRecipe) _ = do
       , execFinal = 1
       , incEdgeSeqLen = noAction
     }
-propToIE maxSeqLen (Forall f) inList = liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy n) -> do
+propToIE maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy n) -> do
     currSeqLen :: Reg (Bit n) <- makeReg 0
 
     let useQueue = if (maxSeqLen == 1) then 0 else currSeqLen.val .>. 1
-    appliedValsQueue :: Bits a => Queue a <- makeSizedQueue maxSeqLen
-    appliedValReg <- makeReg initial
+    appliedValsQueue :: Queue b <- makeSizedQueue maxSeqLen
+    appliedValReg :: Reg b <- makeReg initial -- Beware that tuples are not initialised properly
     incVal <- makeWire (dontCare :: Bit 1)
     let oldVal = useQueue ? (appliedValsQueue.first, appliedValReg.val)
         oldFinal = isFinal oldVal
@@ -108,6 +108,7 @@ propToIE maxSeqLen (Forall f) inList = liftNat ((maxSeqLen + 1).fromIntegral.(lo
       , execFinal = isFinal currVal .&. ie.execFinal
       , incEdgeSeqLen = do
           currSeqLen <== currSeqLen.val + 1
+          appliedValReg <== initial -- Fixes tuples not initialised properly
           when (useQueue) do cycleEnq currVal
           ie.incEdgeSeqLen
     }

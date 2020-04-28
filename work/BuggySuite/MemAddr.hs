@@ -13,7 +13,7 @@ instance Generator MemAddr where
 
 testBench :: Module ()
 testBench = do
-  let prop_MRGT10 = Forall \(ma :: MemAddr) -> Assert (slice @11 @0 (pack ma) .==. ones)
+  let prop_MRGT10 = Forall \(MemAddr ma :: MemAddr) -> Assert (slice @11 @0 ma .==. ones)
   let properties = [("MemAddr GT10", prop_MRGT10)]
 
   _ <- checkPure properties

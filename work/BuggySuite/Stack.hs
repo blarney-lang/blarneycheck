@@ -96,9 +96,9 @@ testBench = do
   let prop_TopEq = Assert (stackBRAM.isEmpty .|. topEq)
   let prop_EmptyEq = Assert (stackGolden.isEmpty .==. stackBRAM.isEmpty)
 
-  let prop_Push = Forall \x -> WhenAction 1 ((stackGolden.push) x >> (stackBRAM.push) x)
+  let prop_Push = Forall \x -> WhenAction true ((stackGolden.push) x >> (stackBRAM.push) x)
   let prop_Pop =  WhenAction (stackGolden.isEmpty.inv .&. stackBRAM.isEmpty.inv) ((stackGolden.pop) >> (stackBRAM.pop))
-  let prop_PushPopNop = Forall \x -> WhenRecipe 1 $ Seq [Action do (stackBRAM.push) x, Action do stackBRAM.pop]
+  let prop_PushPopNop = Forall \x -> WhenRecipe true $ Seq [Action do (stackBRAM.push) x, Action do stackBRAM.pop]
 
   let properties = [
           ("TopEq", prop_TopEq)

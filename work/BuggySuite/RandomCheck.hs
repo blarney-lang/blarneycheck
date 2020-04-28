@@ -21,8 +21,8 @@ instance KnownNat n => Generator (CustomRandBit n) where
 -- Also note that when 's' = 2^(n-2)-n, the order is the same as the normal generator: +1
 testBench :: Module ()
 testBench = do
-  let prop_DisplayCustom  = Forall \(CustomRandBit crb :: CustomRandBit 8) -> WhenAction 1 $ display_ crb ", "
-  let prop_DisplayBuiltin = Forall \(brb :: RandBits (Bit 8) (Seed 0xc4 1)) -> WhenAction 1 $ display_ (pack brb) ", "
+  let prop_DisplayCustom  = Forall \(CustomRandBit crb :: CustomRandBit 8)                  -> WhenAction true (display_ crb ", ")
+  let prop_DisplayBuiltin = Forall \(RandBits brb :: RandBits (Bit 4, Bit 4) (Seed 0xc4 1)) -> WhenAction true (display_ brb ", ")
 
   let properties = [
           ("New Line", WhenAction 1 $ display "Custom Random:")

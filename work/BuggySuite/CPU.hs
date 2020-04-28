@@ -164,7 +164,7 @@ testBench = do
   value :: Wire (Bit 8) <- makeWire 0
   (destReg, result) <- makeCPU (instr.val)
   
-  let prop_CPUStoreVal = Forall \(StoreInstr si :: StoreInstr) -> WhenRecipe 1 $ 
+  let prop_CPUStoreVal = Forall \(StoreInstr si :: StoreInstr) -> WhenRecipe true $ 
                             Seq [Action $ instr <== si,
                                  Action $ value <== zeroExtend (si.imm)]
   let prop_CPUAddVal = Forall \(StoreInstr si1 :: StoreInstr) -> Forall \(StoreInstr si2 :: StoreInstr) ->

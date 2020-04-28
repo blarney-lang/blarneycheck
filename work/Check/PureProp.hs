@@ -56,7 +56,7 @@ propToPureTB (Assert result) _ =
 propToPureTB (Forall (f :: a -> Prop)) inList = do
   gen :: Reg a <- makeReg initial
   tb <- propToPureTB (f $ gen.val) inList
-  let amFinal = (gen.val :: a).isFinal
+  let amFinal = gen.val.isFinal
   let nextVal = amFinal ? (initial, gen.val.next)
   let incrementAction = do { do
     gen <== nextVal

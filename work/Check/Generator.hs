@@ -39,7 +39,7 @@ instance {-# OVERLAPPABLE #-} (SizedBits a) => Generator a where
 -- For larger 's' >= 2^(n-2)-1 + m, with m >= 0, ordering will be same as if 's' = m
 -- Note that, although pseudo-random, the order of the lowest 4 bits is rarely affected by 's' values
 -- Also note that when 's' = 2^(n-2)-n, the order is the same as the normal generator: +1
-newtype RandBits a s = SizedBits a deriving (Generic, Bits)
+newtype RandBits a s = RandBits a deriving (Generic, Bits)
 
 data Seed (i :: Nat) (s :: Nat)
 
@@ -51,7 +51,7 @@ instance {-# OVERLAPPABLE #-} (SizedBits b, KnownNat i, KnownNat s) => Generator
   initial = unpack $ constant $ toInteger (valueOf @i) `mod` (2 ^ valueOf @(SizeOf b))
   next current = let a = seedToA @(SizeOf b) @s
     in unpack $ pack current .*. (constant a) .+. 1
-  isFinal current = pack (initial :: RandBits b (Seed s)) .==. pack (next current)
+  isFinal current = pack (initial :: RandBits b (Seed i s)) .==. pack (next current)
   range = 2^valueOf @(SizeOf b)
 
 {-}

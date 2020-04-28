@@ -15,12 +15,14 @@ import Check.Utils
 checkPure :: [Property] -> Module (Bit 1)
 checkPure props = let (pureProps, impureProps) = splitProperties props in
   if (length impureProps /= 0) then error "Trying to check impure properties without specifying a valid depth!" else do
+    let isDebug = testPlusArgs "DEBUG"
     pureTB <- combinePureProps pureProps
     globalTime :: Reg (Bit 32) <- makeReg 0
     allDone :: Reg (Bit 1) <- makeReg 0
     always do
       globalTime <== globalTime.val + 1
       when (pureTB.failed.inv) do
+        when isDebug do display_ " | Pass: " >> pureTB.displayFail
         when (pureTB.isDone) do
           _ <- display "--All tests passed at time %0d" (globalTime.val) "--"
           allDone <== 1
@@ -103,6 +105,8 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
       --display "~"
       --finish
   return (allDone.val)
+
+
 
 estimateTestCaseCount :: [Property] -> Integer -> Module ()
 estimateTestCaseCount props maxSeqLen =
