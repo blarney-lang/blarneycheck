@@ -22,7 +22,7 @@ checkPure props = let (pureProps, impureProps) = splitProperties props in
     always do
       globalTime <== globalTime.val + 1
       when (pureTB.failed.inv) do
-        when isDebug do display_ " | Pass: " >> pureTB.displayFail
+        when isDebug do display_ "Pass: " >> pureTB.displayFail >> display_ "\n"
         when (pureTB.isDone) do
           _ <- display "--All tests passed at time %0d" (globalTime.val) "--"
           allDone <== 1
