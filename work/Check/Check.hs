@@ -48,7 +48,7 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
   failTime :: Reg (Bit 32) <- makeReg 0
   pureTB <- combinePureProps pureProps
 
-  stateTester <- makeImpureTestBench impureProps rst maxSeqLen (displayingFail.val)
+  stateTester <- makeStatefulTester impureProps rst maxSeqLen (displayingFail.val)
   let startPureTests = stateTester.sequenceDone .&. stateTester.finishedExec
   let purePhase = purePhaseReg.val .|. startPureTests
 

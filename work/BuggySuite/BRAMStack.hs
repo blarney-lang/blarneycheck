@@ -17,20 +17,20 @@ data Stack a =
   , clear   :: Action ()
   }
 
--- Buggy stackBRAM implementation
+-- Buggy stack implementation
 -- (Parallel push and pop not supported)
 makeBRAMStack :: Bits a => Int -> Module (Stack a)
 makeBRAMStack logSize = do
   -- Lift size to type-level number
   liftNat logSize $ \(_ :: Proxy n) -> do
 
-    -- RAM, wide enough to hold entire stackBRAM
+    -- RAM, wide enough to hold entire stack
     ram :: RAM (Bit n) a <- makeDualRAMForward 0
 
     -- Stack pointer
     sp :: Reg (Bit n) <- makeReg 0
 
-    -- Top stackBRAM element
+    -- Top stack element
     topReg :: Reg a <- makeReg dontCare
 
     -- Speculative read address
@@ -66,10 +66,10 @@ makeStackSpec logSize =
   -- Lift size to type-level number
   liftNat logSize $ \(_ :: Proxy n) -> do
 
-    -- List of register, big enough to hold stackBRAM elements
+    -- List of register, big enough to hold stack elements
     elems :: [Reg a] <- replicateM (2^logSize) (makeReg dontCare)
 
-    -- Size of stackBRAM
+    -- Size of stack
     size :: Reg (Bit n) <- makeReg 0
 
     return $
@@ -89,16 +89,16 @@ makeStackSpec logSize =
 -- Top-level module
 testBench :: Module ()
 testBench = do
-  stackGolden :: Stack (Bit 5) <- makeStackSpec 5
-  stackBRAM :: Stack (Bit 5) <- makeBRAMStack 5
+  stkGolden :: Stack (Bit 5) <- makeStackSpec 5
+  stkBRAM :: Stack (Bit 5) <- makeBRAMStack 5
 
-  let topEq = stackGolden.top .==. stackBRAM.top
-  let prop_TopEq = Assert (stackBRAM.isEmpty .|. topEq)
-  let prop_EmptyEq = Assert (stackGolden.isEmpty .==. stackBRAM.isEmpty)
+  let topEq = stkGolden.top .==. stkBRAM.top
+  let prop_TopEq = Assert' (stkGolden.isEmpty .|. topEq) (display_ (stkGolden.top) " v " (stkBRAM.top))
+  let prop_EmptyEq = Assert (stkGolden.isEmpty .==. stkBRAM.isEmpty)
 
-  let prop_Push = Forall \x -> WhenAction true ((stackGolden.push) x >> (stackBRAM.push) x)
-  let prop_Pop =  WhenAction (stackGolden.isEmpty.inv .&. stackBRAM.isEmpty.inv) ((stackGolden.pop) >> (stackBRAM.pop))
-  let prop_PushPopNop = Forall \x -> WhenRecipe true $ Seq [Action do (stackBRAM.push) x, Action do stackBRAM.pop]
+  let prop_Push = Forall \x -> WhenAction true (push stkGolden x >> push stkBRAM x)
+  let prop_Pop =  WhenAction (stkGolden.isEmpty.inv .&. stkBRAM.isEmpty.inv) (pop stkGolden >> pop stkBRAM)
+  let prop_PushPopNop = Forall \x -> WhenRecipe true $ Seq [Action do push stkBRAM x, Action do pop stkBRAM]
 
   let properties = [
           ("TopEq", prop_TopEq)
@@ -107,7 +107,7 @@ testBench = do
         , ("Pop", prop_Pop)
         --, ("PushPop", prop_PushPopNop)
         ]
-  let reset = stackGolden.clear >> stackBRAM.clear
+  let reset = stkGolden.clear >> stkBRAM.clear
 
   _ <- check properties reset 7
   --estimateTestCaseCount properties 7

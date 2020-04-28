@@ -15,10 +15,10 @@ import Check.TestBench
 import Data.Proxy
 
 
-propToIE :: Int -> Prop -> Bool -> Module(ImpureTestBench)
-propToIE _ (Assert _) _ = error "Assert in Impure Props"
-propToIE _ (Assert' _ _) _ = error "Assert in Impure Props"
-propToIE _ (WhenAction guardBit impureAction) _ = 
+propToImpureTB :: Int -> Prop -> Bool -> Module(ImpureTestBench)
+propToImpureTB _ (Assert _) _ = error "Assert in Impure Props"
+propToImpureTB _ (Assert' _ _) _ = error "Assert in Impure Props"
+propToImpureTB _ (WhenAction guardBit impureAction) _ = 
     return ImpureTestBench {
         execImpure = \exec -> do
           --when (exec) (display_ "WA")
@@ -31,7 +31,7 @@ propToIE _ (WhenAction guardBit impureAction) _ =
       , execFinal = 1
       , incEdgeSeqLen = noAction
     }
-propToIE _ (WhenRecipe guardBit impureRecipe) _ = do
+propToImpureTB _ (WhenRecipe guardBit impureRecipe) _ = do
     execEdge <- makeWire 0
     executing <- makeReg 0
     myEdgeDone <- run (execEdge.val) impureRecipe
@@ -52,7 +52,7 @@ propToIE _ (WhenRecipe guardBit impureRecipe) _ = do
       , execFinal = 1
       , incEdgeSeqLen = noAction
     }
-propToIE maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy n) -> do
+propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy n) -> do
     currSeqLen :: Reg (Bit n) <- makeReg 0
 
     let useQueue = if (maxSeqLen == 1) then 0 else currSeqLen.val .>. 1
@@ -74,7 +74,7 @@ propToIE maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen + 1).f
         cycleEnq (inc ? (nextVal, oldVal))
         incVal <== inc
     
-    ie <- propToIE maxSeqLen (f currVal) inList
+    ie <- propToImpureTB maxSeqLen (f currVal) inList
     return ie {
         incEdge = \inc -> do
           cycleQueue inc
@@ -90,14 +90,14 @@ propToIE maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen + 1).f
           when (useQueue) do cycleEnq currVal
           incEdgeSeqLen ie
     }
-propToIE maxSeqLen (ForallList 0 f) _ = do
-  ie <- propToIE maxSeqLen (f []) False
+propToImpureTB maxSeqLen (ForallList 0 f) _ = do
+  ie <- propToImpureTB maxSeqLen (f []) False
   return ie { displayValue = \disp -> do
     when disp (display_ "]")
     displayValue ie disp
   }
-propToIE maxSeqLen (ForallList listLen f) inList = do
-  ie <- propToIE maxSeqLen (Forall $ \x -> ForallList (listLen - 1) $ \xs -> f (x:xs)) True
+propToImpureTB maxSeqLen (ForallList listLen f) inList = do
+  ie <- propToImpureTB maxSeqLen (Forall $ \x -> ForallList (listLen - 1) $ \xs -> f (x:xs)) True
   let delimiter = if inList then "," else " ["
   return ie { displayValue = \disp -> do
     when disp (display_ delimiter)
@@ -119,7 +119,7 @@ propsToEdgesWithSelect props maxSeqLen = do
   })
   where propsToEdges [] = return []
         propsToEdges ((name, prop):xs) = do
-          ie <- propToIE maxSeqLen prop False
+          ie <- propToImpureTB maxSeqLen prop False
           edges <- propsToEdges xs
           let edge = ie { displayValue = \disp -> do
                           when disp (display_ name)
@@ -130,8 +130,8 @@ propsToEdgesWithSelect props maxSeqLen = do
 
 
 
-makeImpureTestBench :: [Property] -> Action () -> Int -> Bit 1 -> Module(StatefulTester)
-makeImpureTestBench impureProps rst maxSeqLen failed =
+makeStatefulTester :: [Property] -> Action () -> Int -> Bit 1 -> Module(StatefulTester)
+makeStatefulTester impureProps rst maxSeqLen failed =
   liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy h) -> 
   liftNat ((length impureProps + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy w) -> do
     let isDebug = testPlusArgs "DEBUG"
