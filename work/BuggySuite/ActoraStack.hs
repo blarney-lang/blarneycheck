@@ -54,10 +54,6 @@ data Stack n a =
 -- Implementation
 -- ==============
 
--- "Bugs":
---   - push2 x >> push1 0x1 | pop 0x2 | copy (-2) | top1 == 0 (/= 1)
---   - push1 0x1 | pop 0x0 | top1 == 0 (/= 1)
---   - (pop (size)) doesn't reset: push1 0x1 | pop 0x1 | push2 0x0 >> push1 0x0 | pop 0x1 | copy (-1)
 makeStack :: (Bits a, KnownNat n) => Module (Stack n a)
 makeStack = do
   -- True dual port RAM
@@ -155,6 +151,7 @@ makeStack = do
     , clear = popWire <== sp.val
     }
 
+
 indexIntoList :: (KnownNat n, Bits b, KnownNat (SizeOf b)) => [Reg b] -> Bit n -> b
 indexIntoList list idx = idxList 0 list
   where idxList _ [] = unpack (constant 0)
@@ -214,130 +211,74 @@ makeStackSpec = do
 
 testBench :: Module ()
 testBench = do
-  -- Create 256-element stack
-  stkGolden :: Stack 8 (Bit 8) <- makeStackSpec
-  stkActora :: Stack 8 (Bit 8) <- makeStack
-  {-maxSize :: Reg (Bit 4) <- makeReg 0
-  let incMaxSize = \n -> maxSize <== (maxSize.val .<. stkGolden.size + n ? (stkGolden.size + n, maxSize.val))
+  stkGolden :: Stack 3 (Bit 1) <- makeStackSpec
+  stkActora :: Stack 3 (Bit 1) <- makeStack
+  -- Note 3: Cannot copy top two elements from stack
+  maxSize :: Reg (Bit 3) <- makeReg 0
+  topTwo :: Reg (Bit 2) <- makeReg 0
+  let incMaxSizeOne = do
+        topTwo <== topTwo.val + (topTwo.val .==. 2 ? (0, 1))
+        maxSize <== maxSize.val + (topTwo.val .==. 2 ? (1, 0))
+      incMaxSizeTwo = do
+        topTwo <== 2
+        maxSize <== maxSize.val + (topTwo.val.zeroExtend)
+      decMaxSize = \n -> do
+        let topTwoProtect = topTwo.val.zeroExtend .>=. n
+        topTwo <== (topTwoProtect ? (topTwo.val .-. n.lower, 0))
+        maxSize <== maxSize.val - (topTwoProtect ? (0, n .-. topTwo.val.zeroExtend))
 
   let top1Eq = stkGolden.top1 .==. stkActora.top1
       top2Eq = stkGolden.top2 .==. stkActora.top2
-      prop_Top1Eq = Assert' ((stkGolden.size .==. 0) .|. top1Eq)
+      prop_Top1Eq = Assert' ((stkGolden.size .==. 0) .|. top1Eq) (display_ " ^^" (stkGolden.top1) "|" (stkActora.top1) "^^ ")
       prop_Top2Eq = Assert ((stkGolden.size .<=. 1) .|. top2Eq)
-  let prop_SizeEq = Assert (stkGolden.size .==. stkActora.size)
+      prop_SizeEq = Assert (stkGolden.size .==. stkActora.size)
 
-  let prop_Push1 = Forall \x -> WhenAction true (push1 stkGolden x >> push1 stkActora x >> incMaxSize 1)
-  let prop_Push2 = Forall \x -> WhenAction true (push2 stkGolden x >> push2 stkActora x >> incMaxSize 1)
-  let prop_Push3 = Forall \x -> Forall \y -> WhenAction true (push1 stkGolden x >> push1 stkActora x >> push2 stkGolden y >> push2 stkActora y >> incMaxSize 2)
-  let prop_Copy = Forall \n -> WhenAction ((stkGolden.size .!=. 0) .&. (stkGolden.size - n .<=. maxSize.val)) (copy stkGolden n >> copy stkActora n >> incMaxSize 1)
-  let prop_Pop = Forall \n -> WhenAction ((n .>. 0) .&. (n .<=. stkGolden.size)) (pop stkGolden n >> pop stkActora n)
+  let prop_Push1 = Forall \x -> WhenAction true (push1 stkGolden x >> push1 stkActora x >> incMaxSizeOne)
+      --prop_Push2 = Forall \x -> WhenAction true (push2 stkGolden x >> push2 stkActora x >> incMaxSizeOne)
+      prop_Push3 = Forall \x -> Forall \y -> WhenAction true do
+        push1 stkGolden x
+        push1 stkActora x
+        push2 stkGolden y
+        push2 stkActora y
+        incMaxSizeTwo
+      
+  let copyGuard = \n -> (stkGolden.size .>. n) .|. -- If copying from stack, can only copy up to stk.size elements back
+                        ((stkGolden.size .<. maxSize.val) .&. (n .>=. stkGolden.size - maxSize.val)) -- If copying forward
+      prop_Copy = Forall \n -> WhenAction (copyGuard n) do
+        copy stkGolden n
+        copy stkActora n
+        incMaxSizeOne
+
+  -- Note 2: Cannot pop 0
+  let popGuard = \n -> (n .>. 0) .&. (n .<=. stkGolden.size)
+      prop_Pop = Forall \n -> WhenAction (popGuard n) do
+        pop stkGolden n
+        pop stkActora n
+        decMaxSize n
+      prop_PushPop = Forall \x -> Forall \n -> WhenAction (popGuard n) do
+        pop stkGolden n
+        pop stkActora n
+        push1 stkGolden x
+        push1 stkActora x
+        decMaxSize (n - 1)
 
   let properties = [
-          ("Top1Eq", prop_Top1Eq (display_ " ^^" (stkGolden.top1) "|" (stkActora.top1) "|" (stkGolden.size) "|" (stkActora.size) "^^ "))
+          ("Top1Eq", prop_Top1Eq)
         , ("Top2Eq", prop_Top2Eq)
         , ("SizeEq", prop_SizeEq)
         , ("Push1", prop_Push1)
-        --, ("Push2", prop_Push2)
-        , ("Push2", prop_Push3)
+        --, ("Push2", prop_Push2) -- Note 1: cannot push2 without push1
+        , ("Push1&2", prop_Push3)
         , ("Copy", prop_Copy)
         , ("Pop", prop_Pop)
+        , ("PushPop", prop_PushPop)
         ]
-  let reset = stkGolden.clear >> stkActora.clear >> (maxSize <== 0)
+  let reset = stkGolden.clear >> stkActora.clear >> (maxSize <== 0) >> (topTwo <== 0)
 
-  _ <- check properties reset 3
+  _ <- check properties reset 4
   --estimateTestCaseCount properties 7
 
-  return ()-}
-
-
-  -- Sample test sequence
-  let test = 
-        Seq [
-          Action do
-            push2 stkActora 0
-            push1 stkActora 1
-        , Action do
-            push2 stkActora 0
-            push1 stkActora 0
-        , Action do
-            pop stkActora 4
-        , Action do
-            push2 stkActora 0
-            push1 stkActora 0
-        , Action do
-            pop stkActora 1
-        , Action do
-            copy stkActora (-1)
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2) " " (stkActora.size)
-            finish
-        , Action do
-            push2 stkActora 1
-            push1 stkActora 2
-          -- [1, 2]
-        , Action do push1 stkActora 3
-          -- [1, 2, 3]
-        , Action do
-            push1 stkActora 4
-            display (stkActora.top1) " " (stkActora.top2)
-          -- [1, 2, 3, 4]
-        , Action do
-            copy stkActora 3
-            display (stkActora.top1) " " (stkActora.top2)
-          -- [1, 2, 3, 4, 1]
-        , Action do
-            pop stkActora 1
-            display (stkActora.top1) " " (stkActora.top2)
-          -- [1, 2, 3, 4]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-          -- [1, 2, 3, 4]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-            push1 stkActora 10
-            pop stkActora 1
-          -- [1, 2, 3, 10]
-        , Action do
-            push1 stkActora 11
-            display (stkActora.top1) " " (stkActora.top2)
-          -- [1, 2, 3, 10, 11]
-        , Action do
-            pop stkActora 3
-            display (stkActora.top1) " " (stkActora.top2)
-          -- [1, 2]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-            push2 stkActora 3
-            push1 stkActora 4
-          -- [1, 2, 3, 4]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-            push2 stkActora 5
-            push1 stkActora 6
-          -- [1, 2, 3, 4, 5, 6]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-            push2 stkActora 7
-            push1 stkActora 8
-          -- [1, 2, 3, 4, 5, 6, 7, 8]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-            pop stkActora 8
-          -- [1, 2]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2) "---"
-            copy stkActora (-3)
-          -- [1, 2, 5]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-            copy stkActora (-3)
-          -- [1, 2, 5, 6]
-        , Action do
-            display (stkActora.top1) " " (stkActora.top2)
-        , Action finish
-        ]
-
-  runOnce test
+  return ()
 
 -- Code generation
 -- ===============
