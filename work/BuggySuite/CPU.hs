@@ -5,7 +5,8 @@
 -- 00DDNNNN  | Write value 0000NNNN to register DD
 -- 01DDAABB  | Add register AA to register BB and store in register DD
 -- 10NNNNBB  | Branch back by NNNN instructions if BB is non-zero
--- 11NNNNNN  | Halt
+-- 1100NNNN  | NOP
+-- 1111NNNN  | Halt
 
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -45,7 +46,7 @@ offset :: Instr -> Bit 4
 offset instr = slice @5 @2 instr
 
 -- CPU
-makeCPU :: Instr -> Module (RegId, Bit 8)
+makeCPU :: Instr -> Module (RegId, Bit 8, Bit 1, Bit 8)
 makeCPU instrMem = do
   -- Instruction memory
   -- instrMem :: RAM (Bit 8) Instr <- makeRAMInit "instrs.hex"
@@ -138,7 +139,7 @@ makeCPU instrMem = do
                      -- Control hazard
                      flush <== 1,
           -- Halt instruction
-          0b11 --> finish
+          0b11 --> when (instr.val.rD .==. 0b11) finish
         ]
 
       -- Writeback
@@ -146,7 +147,7 @@ makeCPU instrMem = do
         store regFileA (instr.val.rD) (result.val)
         store regFileB (instr.val.rD) (result.val)
         --display "%08d" (count.val) ": rf[%0d]" (instr.val.rD) " := 0x%02x" (result.val)
-  return (instr.val.rD, result.val)
+  return (instr.val.rD, result.val, result.active, pcNext.val)
 
 
 -- Instruction Args
@@ -160,32 +161,81 @@ instance Generator StoreInstr where
 
 testBench :: Module ()
 testBench = do
-  instr :: Wire Instr <- makeWire 0
-  value :: Wire (Bit 8) <- makeWire 0
-  (destReg, result) <- makeCPU (instr.val)
+  let nop = 0xc0
+  instr :: Wire Instr <- makeWire nop
+  correctVal :: Wire (Bit 8) <- makeWire 0
+  correctDest :: Wire (Bit 2) <- makeWire 0
+  correctPc :: Reg (Bit 8) <- makeReg 0
+  (destination, value, writeBack, pc) <- makeCPU (instr.val)
   
-  let prop_CPUStoreVal = Forall \(StoreInstr si :: StoreInstr) -> WhenRecipe true $ 
-                            Seq [Action $ instr <== si,
-                                 Action $ value <== zeroExtend (si.imm)]
-  let prop_CPUAddVal = Forall \(StoreInstr si1 :: StoreInstr) -> Forall \(StoreInstr si2 :: StoreInstr) ->
-                        WhenRecipe (si1.rD .!=. si2.rD) $ Seq [
-                          Action $ (instr <== si1),
-                          Action $ (instr <== si2),
-                          Action $ (instr <== 4 # si1.rD # si2.rD),
-                          Action $ (value <== zeroExtend ((si1.imm) + (si2.imm))) -- Bug is here, zero extend after add leads to overflow
-                        ]
+  let prop_storeVal = Forall \(StoreInstr si :: StoreInstr) -> WhenRecipe true do
+                        Seq [ Action do instr <== si
+                            , Action do
+                                -- Ensure that store results in correct value
+                                -- getting written back to the correct register
+                                correctVal <== si.imm.zeroExtend
+                                correctDest <== si.rD
+                                correctPc <== correctPc.val + 2
+                            ]
 
-  let writeActive = value.active.(delay 0)
-  let prop_ResultEqual = Assert (writeActive.inv .|. (result .==. value.val.old))
+  let prop_addVal = Forall \(StoreInstr si1 :: StoreInstr) -> Forall \(StoreInstr si2 :: StoreInstr) -> 
+                      Forall \(dest :: RegId) -> WhenRecipe true do
+                        Seq [ Action do (instr <== si1)
+                            , Action do (instr <== si2)
+                            , Action do (instr <== 0b01 # dest # si1.rD # si2.rD) -- Data hazard from arguments
+                            , Action do
+                                -- If si2 overwrote si1 then sum result should be 2*si2.imm, else si1.imm + si2.imm (zeroExtend first!)
+                                correctVal <== si1.rD .==. si2.rD ? (2 * si2.imm.zeroExtend, si1.imm.zeroExtend + si2.imm.zeroExtend)
+                                correctDest <== dest
+                                correctPc <== correctPc.val + 4
+                            ]
+
+  let prop_hazard = Forall \(StoreInstr si1 :: StoreInstr) -> Forall \(branchOffset :: Bit 4) ->
+                      Forall \(si2rD :: RegId) -> Forall \(two :: Bit 1) -> WhenRecipe true do
+                        Seq [ Action do (instr <== si1)
+                            , Action do (instr <== 0b10 # branchOffset # si1.rD) -- si1.rD => Data hazard
+                            , If two do Action (instr <== nop) -- Delay next instruction by either 0 or 1 clocks
+                            , Action do (instr <== 0b00 # si2rD # (0b1111 :: Bit 4)) -- Branched? => Control hazard 1 or 2 cycles after branch
+                            , Action do
+                                when (si1.imm .==. 0) do
+                                  -- If didn't branch si2 must have an effect
+                                  correctVal <== 0b1111
+                                  correctDest <== si2rD
+                                -- Took (4 + two) cycles to execute, however flush sets pc back by 3 cycles, also subtract jump
+                                correctPc <== correctPc.val + two.zeroExtend + (si1.imm .==. 0 ? (4, 1 - branchOffset.zeroExtend))
+                            ]
+
+  let valActive = correctVal.active.(delay 0)
+      prop_activeCorrect = Assert (valActive .==. writeBack)
+      prop_valCorrect    = Assert (valActive.inv .|. (value .==. correctVal.val.old))
+  let destActive = correctDest.active.(delay 0)
+      prop_destCorrect = Assert  (destActive.inv .|. (destination .==. correctDest.val.old))
+      prop_pcCorrect   = Assert' (correctPc.val .==. pc) (display_ (correctPc.val) " v " pc)
   let properties = [
-          ("Result Correct", prop_ResultEqual)
-        , ("Store", prop_CPUStoreVal)
-        , ("Add", prop_CPUAddVal)
+        -- Should only be writing back after Store or Add
+          ("Writeback_Correct", prop_activeCorrect)
+        -- If is writing back, is that value correct
+        , ("Value_Correct", prop_valCorrect)
+        -- Is the register written back to the correct one
+        , ("Destination_Correct", prop_destCorrect)
+        -- Is the PC the correct value (important for branch)
+        , ("PC_Correct", prop_pcCorrect)
+        -- Store instruction followed by two NOPs
+        -- Above properties checked during second NOP
+        , ("Store", prop_storeVal)
+        -- Two stores, then add, two NOPs and check
+        , ("Add", prop_addVal)
+        -- Store, then branch conditional
+        -- Check that hazards are avoided
+        , ("Branch", prop_hazard)
         ]
-
-  _ <- check properties noAction 1
-  --estimateTestCaseCount properties 1
+  let reset = correctPc <== pc + 1
   
+  -- Testing to depth 2 would take under 2mins on FPGA vs about 50hrs in simulation
+  -- ~ (2^15)^2 * 9.5 clock cycles (~2^15 possibilities, repeated twice, with avg. seq length of 9.5)
+  _ <- check properties reset 1
+  --estimateTestCaseCount properties 2
+
   return ()
 
 -- Main function
