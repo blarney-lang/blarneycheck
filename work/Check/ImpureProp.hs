@@ -73,7 +73,7 @@ propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen 
         cycleDeq
         cycleEnq (inc ? (nextVal, oldVal))
         incVal <== inc
-    
+
     ie <- propToImpureTB maxSeqLen (f currVal) inList
     return ie {
         incEdge = \inc -> do
@@ -87,7 +87,7 @@ propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen 
       , incEdgeSeqLen = do
           currSeqLen <== currSeqLen.val + 1
           appliedValReg <== initial -- Fixes tuples not initialised properly
-          when (useQueue) do cycleEnq currVal
+          enq appliedValsQueue initial
           incEdgeSeqLen ie
     }
 propToImpureTB maxSeqLen (ForallList 0 f) _ = do
@@ -104,15 +104,15 @@ propToImpureTB maxSeqLen (ForallList listLen f) inList = do
     displayValue ie disp
   }
 
-propsToEdgesWithSelect :: KnownNat n => [Property] -> Int -> Module(Bit n -> Bit n -> ImpureTestBench)
+propsToEdgesWithSelect :: KnownNat n => [Property] -> Int -> Module(Bit n -> Bit n -> Bit n -> ImpureTestBench)
 propsToEdgesWithSelect props maxSeqLen = do
   allEdges <- propsToEdges props
-  return (\oldIdx -> \idx -> 
+  return (\prevIdx -> \oldIdx -> \idx -> 
     ImpureTestBench {
       execImpure = sel idx (map execImpure allEdges)
     , incEdge = sel oldIdx (map incEdge allEdges)
     , displayValue = sel idx (map displayValue allEdges)
-    , doneExec = sel idx (map doneExec allEdges)
+    , doneExec = sel prevIdx (map doneExec allEdges)
     , edgeExhausted = sel oldIdx (map edgeExhausted allEdges)
     , execFinal = sel idx (map execFinal allEdges)
     , incEdgeSeqLen = sel idx (map incEdgeSeqLen allEdges)
@@ -157,7 +157,7 @@ makeStatefulTester impureProps rst maxSeqLen failed =
     edgesWithSelect <- propsToEdgesWithSelect impureProps maxSeqLen
     let incEdgeIdx = failed.inv .&. incNextDepth.val .&. edge.edgeExhausted
         currEdge = incEdgeIdx ? (nextEdge, oldEdge)
-        edge = edgesWithSelect oldEdge currEdge
+        edge = edgesWithSelect (edgeTakenReg.val) oldEdge currEdge
 
     let cycleDeq = when useQueue do deq edgesTakenQueue
     let cycleEnq = \newVal -> do
@@ -175,14 +175,11 @@ makeStatefulTester impureProps rst maxSeqLen failed =
           cycleDeq
           cycleEnq currEdge
 
-          --when failed (display_ "Revert:" revertEdge ", di:" (depthEdgesIncTo.val) ", ")
-          --when (incNextDepth.val) (display_ "@" nextVal "@")
           incEdge edge (failed.inv .&. incNextDepth.val)
           execImpure edge true
           displayValue edge (failed .|. isDebug)
           
           incNextDepth <== depthExhausted
-          --when isDebug do display_ " ###" (oldEdge) "-" (edge.edgeExhausted) "-" (currEdge) "-" (incNextDepth.val) "-" depthExhausted "### "
           allEdgesFinal <== edge.execFinal .&. currFinal .&. allEdgesFinal.val
     , finishedExec = edge.doneExec
     , sequenceDone = isAtFinalDepth
@@ -199,7 +196,7 @@ makeStatefulTester impureProps rst maxSeqLen failed =
         _ <- display_ "- All tests passed to depth %0d" (currSeqLen.val)
         -- Enqueue to queues
         incEdgeSeqLen edge
-        cycleEnq (edgeTakenReg.val)
+        enq edgesTakenQueue 0
         -- Initialise values
         currSeqLen <== currSeqLen.val + 1
     , allSeqExec = allEdgesFinal.val .&. isAtFinalDepth
