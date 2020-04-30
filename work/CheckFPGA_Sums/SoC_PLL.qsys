@@ -13,7 +13,7 @@
    {
       datum _sortIndex
       {
-         value = "2";
+         value = "3";
          type = "int";
       }
    }
@@ -69,16 +69,21 @@
    {
       datum _sortIndex
       {
-         value = "1";
+         value = "2";
          type = "int";
+      }
+      datum sopceditor_expanded
+      {
+         value = "1";
+         type = "boolean";
       }
    }
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="FIFO" />
- <parameter name="device" value="5SGXEA7N2F45C2" />
- <parameter name="deviceFamily" value="Stratix V" />
- <parameter name="deviceSpeedGrade" value="2_H2" />
+ <parameter name="device" value="5CSXFC6D6F31C8ES" />
+ <parameter name="deviceFamily" value="Cyclone V" />
+ <parameter name="deviceSpeedGrade" value="8_H6" />
  <parameter name="fabricMode" value="QSYS" />
  <parameter name="generateLegacySim" value="false" />
  <parameter name="generationId" value="0" />
@@ -129,8 +134,8 @@
  <module name="pll_0" kind="altera_pll" version="16.1" enabled="1">
   <parameter name="debug_print_output" value="false" />
   <parameter name="debug_use_rbc_taf_method" value="false" />
-  <parameter name="device" value="5SGXEA7N2F45C2" />
-  <parameter name="device_family" value="Stratix V" />
+  <parameter name="device" value="5CSXFC6D6F31C8ES" />
+  <parameter name="device_family" value="Cyclone V" />
   <parameter name="gui_active_clk" value="false" />
   <parameter name="gui_actual_output_clock_frequency0" value="0 MHz" />
   <parameter name="gui_actual_output_clock_frequency1" value="0 MHz" />
@@ -245,7 +250,7 @@
   <parameter name="gui_multiply_factor" value="1" />
   <parameter name="gui_number_of_clocks" value="1" />
   <parameter name="gui_operation_mode" value="direct" />
-  <parameter name="gui_output_clock_frequency0" value="200.0" />
+  <parameter name="gui_output_clock_frequency0" value="1000.0" />
   <parameter name="gui_output_clock_frequency1" value="100.0" />
   <parameter name="gui_output_clock_frequency10" value="100.0" />
   <parameter name="gui_output_clock_frequency11" value="100.0" />

@@ -16,7 +16,7 @@ testBench bytesIn = do
         , ("Commutativity", prop_Commutativity)
         ]
 
-  checkPure properties >>= outputForSynthesis bytesOut
+  checkPureFPGA bytesOut properties
 
   always do
     when (bytesIn.canPeek) do
