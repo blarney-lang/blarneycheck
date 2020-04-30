@@ -1,15 +1,11 @@
 #!/bin/bash
+# Run from the work directory in BlarneyCheck
 
-FILEDIR=${1?Error: no dir given}
-FILENAME=${2?Error: no file given}
-
-
-pwd
-echo "Filedir: $FILEDIR"
-echo "Filename: $FILENAME"
+FILE=${1?Error: no file given}
+FILENAME=$(basename "$FILE")
+FILEDIR=$(dirname "$FILE")
 
 if ! [[ -d "/opt/ghc/bin" || -x "$(command -v ghc)" ]]; then
-  # Take action if $DIR exists. #
   echo "Installing ghc files in /opt/ghc/bin..."
   sudo add-apt-repository -y ppa:hvr/ghc
   sudo apt-get update
@@ -21,25 +17,21 @@ if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs
 fi
 
-File=~/.bashrc
-PathAddGhc='[ -d "/opt/ghc/bin" ] && export PATH="/opt/ghc/bin:$PATH"'
-if ! grep -q "$PathAddGhc" "$File"; then
-  [ -d "/opt/ghc/bin" ] && echo "$PathAddGhc" >> "$File"
-fi
+echo "Running: $FILE"
 
-
-PATH="/opt/ghc/bin:$PATH" BLARNEY_ROOT=blarney blarney/Scripts/blc "$FILEDIR/$FILENAME" #> /dev/null
-echo "Compiled! $FILEDIR/$FILENAME"
+PATH="/opt/ghc/bin:$PATH" BLARNEY_ROOT="blarney" "blarney/Scripts/blc" "$FILE"
 
 cd $FILEDIR
-TEST=$(basename $FILENAME .hs)
-./$TEST
-cd Out-Verilog
-make -s #&> /dev/null
-echo "Executed $TEST with result of:"
-mkdir -p ../Results/$TEST
-(time ./top | head -n -1) 2>&1 | tee "../Results/$TEST/output_$(date +"%Y_%d_%m_%H_%M_%S").txt"
+EXECUTABLE=$(basename $FILENAME .hs)
+if [ -f "./$EXECUTABLE" ]; then
+  ./$EXECUTABLE
+  cd Out-Verilog
+  make -s #&> /dev/null
+  echo "Executed $EXECUTABLE with result of:"
+  mkdir -p ../Results/$EXECUTABLE
+  (time ./top | head -n -1) 2>&1 | tee "../Results/$EXECUTABLE/output_$(date +"%Y_%d_%m_%H_%M_%S").txt"
 
-cd ..
+  cd "$FILEDIR"
+fi
 
-rm -rf *.o *.hi "$TEST" Out-Verilog
+rm -rf *.o *.hi "$FILEDIR/$EXECUTABLE" Out-Verilog
