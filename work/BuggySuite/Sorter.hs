@@ -22,6 +22,7 @@ halve [] = ([], [])
 halve [x] = ([x], [])
 halve (x:y:list) = let (xs, ys) = halve list in (x:xs, y:ys)
 
+-- Try sorting with only bitonic (merge) step
 sort2 :: KnownNat n => [Bit n] -> [Bit n]
 sort2 [] = []
 sort2 [a] = [a]
@@ -44,7 +45,7 @@ isSorted (x1:x2:xs) = (x1 .<=. x2) .&. isSorted (x2:xs)
 
 testBench :: Module ()
 testBench = do
-  let prop_Sorted = ForallList 25 \(xs :: [Bit 1]) -> Assert (isSorted $ sort2 xs)
+  let prop_Sorted = ForallList 25 \(xs :: [Bit 1]) -> Assert (isSorted $ sort1 xs)
   --let prop_Sorted = ForallList 6 \(xs :: [Bit 1]) -> Assert ((andList xs).inv)
 
   let properties = [("Sorted", prop_Sorted)]

@@ -1,6 +1,5 @@
 -- Blarney imports
 import Blarney
-import Blarney.Queue
 import Blarney.Recipe
 import Check.Check
 
