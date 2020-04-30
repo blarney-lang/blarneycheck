@@ -1,13 +1,13 @@
 #!/bin/bash
 
-cd /home/jonas/Part_II_Project/blackcheck/work
-examples="MemAddr OneHot Sorter Stack Sums Sums_Fast"
+cd /home/jonas/Part_II_Project/blarneycheck/work
+examples="ActoraStack BRAMStack CPU FirstHot Sorter Sums Sums_Parallel"
 
 for i in {1..16}
 do
    for ex in $examples
    do
-      /home/jonas/Part_II_Project/blackcheck/Temp/SimulateBlarney.sh BuggySuite "$ex".hs
+      /home/jonas/Part_II_Project/blarneycheck/Temp/SimulateBlarney.sh "BuggySuite/$ex.hs"
    done
 done
 
