@@ -7,6 +7,7 @@ module Check.ImpureProp where
 import Blarney
 import Blarney.Recipe
 import Blarney.Queue
+import Blarney.Core.Utils
 import Check.Generator
 import Check.Property
 import Check.TestBench
@@ -15,10 +16,10 @@ import Check.TestBench
 import Data.Proxy
 
 
-propToImpureTB :: Int -> Prop -> Bool -> Module(ImpureTestBench)
-propToImpureTB _ (Assert _) _ = error "Assert in Impure Props"
-propToImpureTB _ (Assert' _ _) _ = error "Assert in Impure Props"
-propToImpureTB _ (WhenAction guardBit impureAction) _ = 
+propToImpureTB :: Int -> Prop -> Bit 1 -> Bool -> Module(ImpureTestBench)
+propToImpureTB _ (Assert _) _ _ = error "Assert in Impure Props"
+propToImpureTB _ (Assert' _ _) _ _ = error "Assert in Impure Props"
+propToImpureTB _ (WhenAction guardBit impureAction) _ _ = 
     return ImpureTestBench {
         execImpure = \exec -> do
           --when (exec) (display_ "WA")
@@ -31,7 +32,7 @@ propToImpureTB _ (WhenAction guardBit impureAction) _ =
       , execFinal = 1
       , incEdgeSeqLen = noAction
     }
-propToImpureTB _ (WhenRecipe guardBit impureRecipe) _ = do
+propToImpureTB _ (WhenRecipe guardBit impureRecipe) _ _ = do
     execEdge <- makeWire 0
     executing <- makeReg 0
     myEdgeDone <- run (execEdge.val) impureRecipe
@@ -52,10 +53,7 @@ propToImpureTB _ (WhenRecipe guardBit impureRecipe) _ = do
       , execFinal = 1
       , incEdgeSeqLen = noAction
     }
-propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy n) -> do
-    currSeqLen :: Reg (Bit n) <- makeReg 0
-
-    let useQueue = if (maxSeqLen == 1) then 0 else currSeqLen.val .>. 1
+propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) useQueue inList = do
     appliedValsQueue :: Queue b <- makeSizedQueue maxSeqLen
     appliedValReg :: Reg b <- makeReg initial -- Beware that tuples are not initialised properly
     incVal <- makeWire (dontCare :: Bit 1)
@@ -74,7 +72,7 @@ propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen 
         cycleEnq (inc ? (nextVal, oldVal))
         incVal <== inc
 
-    ie <- propToImpureTB maxSeqLen (f currVal) inList
+    ie <- propToImpureTB maxSeqLen (f currVal) useQueue inList
     return ie {
         incEdge = \inc -> do
           cycleQueue inc
@@ -85,27 +83,26 @@ propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) inList = liftNat ((maxSeqLen 
       , edgeExhausted = oldFinal .&. ie.edgeExhausted
       , execFinal = isFinal currVal .&. ie.execFinal
       , incEdgeSeqLen = do
-          currSeqLen <== currSeqLen.val + 1
           appliedValReg <== initial -- Fixes tuples not initialised properly
           enq appliedValsQueue initial
           incEdgeSeqLen ie
     }
-propToImpureTB maxSeqLen (ForallList 0 f) _ = do
-  ie <- propToImpureTB maxSeqLen (f []) False
+propToImpureTB maxSeqLen (ForallList 0 f) useQueue _ = do
+  ie <- propToImpureTB maxSeqLen (f []) useQueue False
   return ie { displayValue = \disp -> do
     when disp (display_ "]")
     displayValue ie disp
   }
-propToImpureTB maxSeqLen (ForallList listLen f) inList = do
-  ie <- propToImpureTB maxSeqLen (Forall $ \x -> ForallList (listLen - 1) $ \xs -> f (x:xs)) True
+propToImpureTB maxSeqLen (ForallList listLen f) useQueue inList = do
+  ie <- propToImpureTB maxSeqLen (Forall $ \x -> ForallList (listLen - 1) $ \xs -> f (x:xs)) useQueue True
   let delimiter = if inList then "," else " ["
   return ie { displayValue = \disp -> do
     when disp (display_ delimiter)
     displayValue ie disp
   }
 
-propsToEdgesWithSelect :: KnownNat n => [Property] -> Int -> Module(Bit n -> Bit n -> Bit n -> ImpureTestBench)
-propsToEdgesWithSelect props maxSeqLen = do
+propsToEdgesWithSelect :: KnownNat n => [Property] -> Int -> Bit 1 -> Module(Bit n -> Bit n -> Bit n -> ImpureTestBench)
+propsToEdgesWithSelect props maxSeqLen useQueue = do
   allEdges <- propsToEdges props
   return (\prevIdx -> \oldIdx -> \idx -> 
     ImpureTestBench {
@@ -119,7 +116,7 @@ propsToEdgesWithSelect props maxSeqLen = do
   })
   where propsToEdges [] = return []
         propsToEdges ((name, prop):xs) = do
-          ie <- propToImpureTB maxSeqLen prop False
+          ie <- propToImpureTB maxSeqLen prop useQueue False
           edges <- propsToEdges xs
           let edge = ie { displayValue = \disp -> do
                           when disp (display_ name)
@@ -131,9 +128,9 @@ propsToEdgesWithSelect props maxSeqLen = do
 
 
 makeStatefulTester :: [Property] -> Action () -> Int -> Bit 1 -> Module(StatefulTester)
-makeStatefulTester impureProps rst maxSeqLen failed =
-  liftNat ((maxSeqLen + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy h) -> 
-  liftNat ((length impureProps + 1).fromIntegral.(logBase 2.0).ceiling) $ \(_ :: Proxy w) -> do
+makeStatefulTester impureProps rst maxSeqLen testFailed =
+  liftNat ((maxSeqLen + 1).log2ceil) $ \(_ :: Proxy h) -> 
+  liftNat ((length impureProps + 1).log2ceil) $ \(_ :: Proxy w) -> do
     let isDebug = testPlusArgs "DEBUG"
     let edgesWidth = (length impureProps - 1).toInteger.constant
 
@@ -154,8 +151,8 @@ makeStatefulTester impureProps rst maxSeqLen failed =
         oldFinal = oldEdge .==. edgesWidth
         nextEdge = oldFinal ? (0, oldEdge + 1)
 
-    edgesWithSelect <- propsToEdgesWithSelect impureProps maxSeqLen
-    let incEdgeIdx = failed.inv .&. incNextDepth.val .&. edge.edgeExhausted
+    edgesWithSelect <- propsToEdgesWithSelect impureProps maxSeqLen useQueue
+    let incEdgeIdx = testFailed.inv .&. incNextDepth.val .&. edge.edgeExhausted
         currEdge = incEdgeIdx ? (nextEdge, oldEdge)
         edge = edgesWithSelect (edgeTakenReg.val) oldEdge currEdge
 
@@ -175,9 +172,9 @@ makeStatefulTester impureProps rst maxSeqLen failed =
           cycleDeq
           cycleEnq currEdge
 
-          incEdge edge (failed.inv .&. incNextDepth.val)
+          incEdge edge (testFailed.inv .&. incNextDepth.val)
           execImpure edge true
-          displayValue edge (failed .|. isDebug)
+          displayValue edge (testFailed .|. isDebug)
           
           incNextDepth <== depthExhausted
           allEdgesFinal <== edge.execFinal .&. currFinal .&. allEdgesFinal.val
