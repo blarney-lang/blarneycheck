@@ -7,11 +7,11 @@ for i in {1..16}
 do
    for ex in $examples
    do
-      /home/jonas/Part_II_Project/blarneycheck/Temp/SimulateBlarney.sh "BuggySuite/$ex.hs"
+      "/home/jonas/Part_II_Project/blarneycheck/Temp/SimulateBlarney.sh BuggySuite/$ex.hs --eval"
    done
 done
 
-cd BuggySuite/Results
+cd BuggySuite/Results/Evaluation
 for ex in $examples
 do
    cd "$ex"

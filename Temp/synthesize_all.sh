@@ -6,7 +6,7 @@ COMMAND=${1:-report}
 [ -d "${QSYS_ROOTDIR}" ] && export PATH="${QSYS_ROOTDIR}:${PATH}"
 
 cd /home/jonas/Part_II_Project/blarneycheck/work/CheckFPGA_ActoraStack/
-printf "\n\nActoraStack:\n"
+printf "ActoraStack:\n"
 make $COMMAND
 quartus_dse SoCKitTop.qpf --report exploration_summary --report-format csv --report-file report.csv
 

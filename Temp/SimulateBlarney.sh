@@ -4,6 +4,12 @@
 FILE=${1?Error: no file given}
 FILENAME=$(basename "$FILE")
 FILEDIR=$(dirname "$FILE")
+if [[ $* == *--eval* ]]
+then
+  OUTDIR="Evaluation"
+else
+  OUTDIR="Simulation"
+fi
 
 if ! [[ -d "/opt/ghc/bin" || -x "$(command -v ghc)" ]]; then
   echo "Installing ghc files in /opt/ghc/bin..."
@@ -26,10 +32,10 @@ EXECUTABLE=$(basename $FILENAME .hs)
 if [ -f "./$EXECUTABLE" ]; then
   ./$EXECUTABLE
   cd Out-Verilog
-  make -s #&> /dev/null
+  make -s
   echo "Executed $EXECUTABLE with result of:"
-  mkdir -p ../Results/$EXECUTABLE
-  (time ./top | head -n -1) 2>&1 | tee "../Results/$EXECUTABLE/output_$(date +"%Y_%d_%m_%H_%M_%S").txt"
+  mkdir -p ../Results/$OUTDIR/$EXECUTABLE
+  (time ./top | head -n -1) 2>&1 | tee "../Results/$OUTDIR/$EXECUTABLE/output_$(date +"%Y_%d_%m_%H_%M_%S").txt"
 
   cd "$FILEDIR"
 fi
