@@ -12,6 +12,7 @@ one:
 dse:
 	make -C Src
 	qsys-generate -syn SoC.qsys
+	"../../Temp/copy_bram_files.sh" &
 	quartus_dse SoCKitTop.qpf    \
 	    --num-seeds 15              \
 	    --launcher local            \
