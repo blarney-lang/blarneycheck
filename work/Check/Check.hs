@@ -5,6 +5,7 @@ module Check.Check (
 ) where
 
 import Blarney
+import Blarney.Queue
 import Check.Generator
 import Check.Property
 import Check.PureProp
@@ -12,7 +13,7 @@ import Check.ImpureProp
 import Check.TestBench
 import Check.Utils
 
-checkPure :: [Property] -> Module (Bit 1)
+checkPure :: [Property] -> Module (Bit 1, Bit 1)
 checkPure props = let (pureProps, impureProps) = splitProperties props in
   if (length impureProps /= 0) then error "Trying to check impure properties without specifying a valid depth!" else do
     let isDebug = testPlusArgs "DEBUG"
@@ -31,11 +32,12 @@ checkPure props = let (pureProps, impureProps) = splitProperties props in
       when (pureTB.failed) do
         _ <- display "@ Fail at time %0d" (globalTime.val) " @"
         displayFail pureTB >> display_ "\n"
+        allDone <== 1
         finish
-    return (allDone.val)
+    return (allDone.val, pureTB.failed)
 
 
-check :: [Property] -> Action() -> Int -> Module (Bit 1)
+check :: [Property] -> Action() -> Int -> Module (Bit 1, Bit 1)
 check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props in
   if (maxSeqLen <= 0 || length impureProps == 0) then checkPure props else do
   let isDebug = testPlusArgs "DEBUG"
@@ -103,9 +105,19 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
       display_ "\t| "
       when (purePhase .&. pureTB.isDone) do display_ "\n"
     globalTime <== globalTime.val + 1
-  return (allDone.val)
+  return (allDone.val, displayingFail.val)
 
-
+outputForSynthesis :: Queue (Bit 8) -> (Bit 1, Bit 1) -> Module ()
+outputForSynthesis bytesOut (done, testFailed) = do
+  stop :: Reg (Bit 1) <- makeReg 0
+  always do
+    when (stop.val.inv) do
+      when (testFailed) do
+        enq bytesOut (charToByte 'F')
+        stop <== 1
+      when (done) do
+        enq bytesOut (charToByte 'P')
+        stop <== 1
 
 estimateTestCaseCount :: [Property] -> Integer -> Module ()
 estimateTestCaseCount props maxSeqLen =

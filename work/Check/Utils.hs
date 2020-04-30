@@ -24,6 +24,11 @@ import Blarney
 import Check.Generator
 import Check.Property
 
+import Data.Char (ord)
+
+charToByte :: Char -> Bit 8
+charToByte ch = constant (toInteger (ord ch))
+
 doActionList :: [Action ()] -> Action()
 doActionList as = foldr (>>) noAction as
 
