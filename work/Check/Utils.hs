@@ -21,6 +21,7 @@
 module Check.Utils where
 
 import Blarney
+import Blarney.Queue
 import Check.Generator
 import Check.Property
 
@@ -29,16 +30,18 @@ import Data.Char (ord)
 charToByte :: Char -> Bit 8
 charToByte ch = constant (toInteger (ord ch))
 
-doActionList :: [Action ()] -> Action()
-doActionList as = foldr (>>) noAction as
+outputForFPGA :: Queue (Bit 8) -> (Bit 1, Bit 1) -> Module ()
+outputForFPGA bytesOut (done, testFailed) = do
+  stop :: Reg (Bit 1) <- makeReg 0
+  always do
+    when (stop.val.inv) do
+      when (testFailed) do
+        enq bytesOut (charToByte 'F')
+        stop <== 1
+      when (done) do
+        enq bytesOut (charToByte 'P')
+        stop <== 1
 
-incrementGenList :: Generator a => [a] -> [a]
-incrementGenList as = igl 1 as
-  where igl :: Generator a => Bit 1 -> [a] -> [a]
-        igl _ [] = []
-        igl inc (x:xs) =
-          let incXs = igl (inc .&. isFinal x) xs
-          in (unpack $ mux inc (mux (isFinal x) (initial, pack (next x)), pack x)):incXs
 
 isPureProp :: Prop -> Bool
 isPureProp (WhenAction _ _) = False

@@ -127,11 +127,10 @@ propsToEdgesWithSelect props maxSeqLen useQueue = do
 
 
 
-makeStatefulTester :: [Property] -> Action () -> Int -> Bit 1 -> Module(StatefulTester)
-makeStatefulTester impureProps rst maxSeqLen testFailed =
+makeStatefulTester :: [Property] -> Action () -> Int -> Bit 1 -> Bit 1 -> Module(StatefulTester)
+makeStatefulTester impureProps rst maxSeqLen testFailed isDebug =
   liftNat ((maxSeqLen + 1).log2ceil) $ \(_ :: Proxy h) -> 
   liftNat ((length impureProps + 1).log2ceil) $ \(_ :: Proxy w) -> do
-    let isDebug = testPlusArgs "DEBUG"
     let edgesWidth = (length impureProps - 1).toInteger.constant
 
     currDepth :: Reg (Bit h) <- makeReg 0

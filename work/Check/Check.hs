@@ -14,9 +14,14 @@ import Check.TestBench
 import Check.Utils
 
 checkPure :: [Property] -> Module (Bit 1, Bit 1)
-checkPure props = let (pureProps, impureProps) = splitProperties props in
+checkPure = checkPure' (testPlusArgs "DEBUG")
+
+checkPureFPGA :: Queue (Bit 8) -> [Property] -> Module ()
+checkPureFPGA bytesOut props = checkPure' 0 props >>= outputForFPGA bytesOut
+
+checkPure' :: Bit 1 -> [Property] -> Module (Bit 1, Bit 1)
+checkPure' isDebug props = let (pureProps, impureProps) = splitProperties props in
   if (length impureProps /= 0) then error "Trying to check impure properties without specifying a valid depth!" else do
-    let isDebug = testPlusArgs "DEBUG"
     pureTB <- combinePureProps pureProps
     globalTime :: Reg (Bit 32) <- makeReg 0
     allDone :: Reg (Bit 1) <- makeReg 0
@@ -36,11 +41,15 @@ checkPure props = let (pureProps, impureProps) = splitProperties props in
         finish
     return (allDone.val, pureTB.failed)
 
-
 check :: [Property] -> Action() -> Int -> Module (Bit 1, Bit 1)
-check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props in
-  if (maxSeqLen <= 0 || length impureProps == 0) then checkPure props else do
-  let isDebug = testPlusArgs "DEBUG"
+check = check' (testPlusArgs "DEBUG")
+
+checkFPGA :: Queue (Bit 8) -> [Property] -> Action() -> Int -> Module ()
+checkFPGA bytesOut props rst maxSeqLen = check' 0 props rst maxSeqLen >>= outputForFPGA bytesOut
+
+check' :: Bit 1 -> [Property] -> Action() -> Int -> Module (Bit 1, Bit 1)
+check' isDebug props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props in
+  if (maxSeqLen <= 0 || length impureProps == 0) then checkPure' isDebug props else do
   disableDebug :: Wire (Bit 1) <- makeWire 1
 
   purePhaseReg :: Reg (Bit 1) <- makeReg 1
@@ -50,7 +59,7 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
   failTime :: Reg (Bit 32) <- makeReg 0
   pureTB <- combinePureProps pureProps
 
-  stateTester <- makeStatefulTester impureProps rst maxSeqLen (displayingFail.val)
+  stateTester <- makeStatefulTester impureProps rst maxSeqLen (displayingFail.val) isDebug
   let startPureTests = stateTester.sequenceDone .&. stateTester.finishedExec
   let purePhase = purePhaseReg.val .|. startPureTests
 
@@ -107,17 +116,6 @@ check props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props
     globalTime <== globalTime.val + 1
   return (allDone.val, displayingFail.val)
 
-outputForSynthesis :: Queue (Bit 8) -> (Bit 1, Bit 1) -> Module ()
-outputForSynthesis bytesOut (done, testFailed) = do
-  stop :: Reg (Bit 1) <- makeReg 0
-  always do
-    when (stop.val.inv) do
-      when (testFailed) do
-        enq bytesOut (charToByte 'F')
-        stop <== 1
-      when (done) do
-        enq bytesOut (charToByte 'P')
-        stop <== 1
 
 estimateTestCaseCount :: [Property] -> Integer -> Module ()
 estimateTestCaseCount props maxSeqLen =
