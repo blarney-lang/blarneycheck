@@ -7,7 +7,7 @@ for i in {1..16}
 do
    for ex in $examples
    do
-      "/home/jonas/Part_II_Project/blarneycheck/Temp/SimulateBlarney.sh BuggySuite/$ex.hs --eval"
+      /home/jonas/Part_II_Project/blarneycheck/Temp/SimulateBlarney.sh "BuggySuite/$ex.hs" "--eval"
    done
 done
 

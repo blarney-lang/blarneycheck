@@ -50,7 +50,7 @@ testBench :: Stream (Bit 8) -> Module (Stream (Bit 8))
 testBench bytesIn = do  
   bytesOut :: Queue (Bit 8) <- makeQueue
 
-  let prop_Sorted = ForallList 25 \(xs :: [Bit 1]) -> Assert (isSorted $ sort1 xs)
+  let prop_Sorted = ForallList 26 \(xs :: [Bit 1]) -> Assert (isSorted $ sort1 xs)
 
   let properties = [("Sorted", prop_Sorted)]
 

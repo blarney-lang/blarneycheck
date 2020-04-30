@@ -65,8 +65,8 @@ testBench :: Stream (Bit 8) -> Module (Stream (Bit 8))
 testBench bytesIn = do  
   bytesOut :: Queue (Bit 8) <- makeQueue
 
-  stkGolden :: Stack 3 (Bit 1) <- makeStackSpec
-  stkActora :: Stack 3 (Bit 1) <- makeStack
+  stkGolden :: Stack 3 (Bit 2) <- makeStackSpec
+  stkActora :: Stack 3 (Bit 2) <- makeStack
   -- Note 3: Cannot copy top two elements from stack
   maxSize :: Reg (Bit 3) <- makeReg 0
   topTwo :: Reg (Bit 2) <- makeReg 0

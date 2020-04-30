@@ -50,16 +50,16 @@ testBench bytesIn = do
                             ]
 
   let prop_hazard = Forall \(StoreInstr si1 :: StoreInstr) -> Forall \(branchOffset :: Bit 4) ->
-                      Forall \(si2rD :: RegId) -> Forall \(two :: Bit 1) -> WhenRecipe true do
+                      Forall \(StoreInstr si2 :: StoreInstr) -> Forall \(two :: Bit 1) -> WhenRecipe true do
                         Seq [ Action do (instr <== si1)
                             , Action do (instr <== 0b10 # branchOffset # si1.rD) -- si1.rD => Data hazard
                             , If two do Action (instr <== nop) -- Delay next instruction by either 0 or 1 clocks
-                            , Action do (instr <== 0b00 # si2rD # (0b1111 :: Bit 4)) -- Branched? => Control hazard 1 or 2 cycles after branch
+                            , Action do (instr <== si2) -- Branched? => Control hazard 1 or 2 cycles after branch
                             , Action do
                                 when (si1.imm .==. 0) do
                                   -- If didn't branch si2 must have an effect
-                                  correctVal <== 0b1111
-                                  correctDest <== si2rD
+                                  correctVal <== si2.imm.zeroExtend
+                                  correctDest <== si2.rD
                                 -- Took (4 + two) cycles to execute, however flush sets pc back by 3 cycles, also subtract jump
                                 correctPc <== correctPc.val + two.zeroExtend + (si1.imm .==. 0 ? (4, 1 - branchOffset.zeroExtend))
                             ]

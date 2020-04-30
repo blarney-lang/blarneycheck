@@ -84,7 +84,7 @@ displayTime :: Time -> Action ()
 displayTime (hrs, mins, secs, milis) = do
   if (hrs /= 0) then display_ hrs "h " else noAction
   if (mins /= 0) then display_ mins "m " else noAction
-  display_ secs "." milis "s"
+  display_ secs "." (replicate (3 - length (show milis)) '0') milis "s"
 
 displayClkFreq :: Integer -> Action ()
 displayClkFreq freq =

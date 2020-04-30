@@ -63,8 +63,8 @@ makeStackSpec = do
 
 testBench :: Module ()
 testBench = do
-  stkGolden :: Stack 3 (Bit 1) <- makeStackSpec
-  stkActora :: Stack 3 (Bit 1) <- makeStack
+  stkGolden :: Stack 3 (Bit 2) <- makeStackSpec
+  stkActora :: Stack 3 (Bit 2) <- makeStack
   -- Note 3: Cannot copy top two elements from stack
   maxSize :: Reg (Bit 3) <- makeReg 0
   topTwo :: Reg (Bit 2) <- makeReg 0
@@ -127,7 +127,7 @@ testBench = do
         ]
   let reset = stkGolden.clear >> stkActora.clear >> (maxSize <== 0) >> (topTwo <== 0)
 
-  _ <- check properties reset 3
+  _ <- check properties reset 4
   --estimateTestCaseCount properties 7
 
   return ()

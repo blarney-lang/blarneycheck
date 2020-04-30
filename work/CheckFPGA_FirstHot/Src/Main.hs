@@ -14,9 +14,9 @@ testBench :: Stream (Bit 8) -> Module (Stream (Bit 8))
 testBench bytesIn = do  
   bytesOut :: Queue (Bit 8) <- makeQueue
   
-  let prop_OneIsHot =     Forall \(x :: Bit 28) -> Assert ((x .==. 0 ? (0, 1)) .==. countOnes (firstHot x))
-  let prop_HotBitCommon = Forall \(x :: Bit 28) -> Assert (x .&. (firstHot x) .==. (firstHot x))
-  let prop_HotBitFirst =  Forall \(x :: Bit 28) -> Assert (x .&. ((firstHot x) - 1) .==. 0)
+  let prop_OneIsHot =     Forall \(x :: Bit 30) -> Assert ((x .==. 0 ? (0, 1)) .==. countOnes (firstHot x))
+  let prop_HotBitCommon = Forall \(x :: Bit 30) -> Assert (x .&. (firstHot x) .==. (firstHot x))
+  let prop_HotBitFirst =  Forall \(x :: Bit 30) -> Assert (x .&. ((firstHot x) - 1) .==. 0)
   
   let properties = [
           ("OneIsHot", prop_OneIsHot)
