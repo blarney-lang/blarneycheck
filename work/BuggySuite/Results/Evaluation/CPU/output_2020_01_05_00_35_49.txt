@@ -1,0 +1,6 @@
+- All tests passed to depth 0 at time 0 -
+=== All tests passed to maximum specified depth of 1 at time 803008 ===
+
+real	0m0.454s
+user	0m0.450s
+sys	0m0.005s
