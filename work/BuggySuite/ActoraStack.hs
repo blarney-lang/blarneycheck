@@ -30,8 +30,8 @@ makeStackSpec = do
   -- List of register, big enough to hold stack elements
   elems :: [Reg a] <- replicateM (2^valueOf @n) (makeReg dontCare)
   let elemByIdx = indexIntoList elems
-  let firstPush = (spCurr, val2.active ? (val2.val, val1.val))
-      secondPush = ((val1.active .&. val2.active) ? (spCurr + 1, spCurr), val1.val)
+  let firstPush = (val2.active ? (spCurr + 1, spCurr), val1.val)
+      secondPush = (spCurr, val2.val)
       assign = assignIntoList elems firstPush secondPush
   let push = \a -> do
         val1 <== a
@@ -44,7 +44,7 @@ makeStackSpec = do
     , push2 = \b -> do
         val2 <== b
         assign
-        sp <== sp.val + (val1.active ? (2, 1))
+        sp <== sp.val + 2
     , copy = \n -> push (elemByIdx $ sp.val - n - 1)
     , pop = \n -> do
         spWire <== sp.val - n
@@ -69,21 +69,24 @@ testBench = do
   maxSize :: Reg (Bit 3) <- makeReg 0
   topTwo :: Reg (Bit 2) <- makeReg 0
   let incMaxSizeOne = do
+        --maxSize <== (maxSize.val .<. stkGolden.size + 1 ? (stkGolden.size + 1, maxSize.val))
         topTwo <== topTwo.val + (topTwo.val .==. 2 ? (0, 1))
         maxSize <== maxSize.val + (topTwo.val .==. 2 ? (1, 0))
       incMaxSizeTwo = do
+        --maxSize <== (maxSize.val .<. stkGolden.size + 2 ? (stkGolden.size + 2, maxSize.val))
         topTwo <== 2
         maxSize <== maxSize.val + (topTwo.val.zeroExtend)
       decMaxSize = \n -> do
+        --noAction
         let topTwoProtect = topTwo.val.zeroExtend .>=. n
         topTwo <== (topTwoProtect ? (topTwo.val .-. n.lower, 0))
         maxSize <== maxSize.val - (topTwoProtect ? (0, n .-. topTwo.val.zeroExtend))
 
   let top1Eq = stkGolden.top1 .==. stkActora.top1
       top2Eq = stkGolden.top2 .==. stkActora.top2
-      prop_Top1Eq = Assert' ((stkGolden.size .==. 0) .|. top1Eq) (display_ " ^^" (stkGolden.top1) "|" (stkActora.top1) "^^ ")
-      prop_Top2Eq = Assert ((stkGolden.size .<=. 1) .|. top2Eq)
-      prop_SizeEq = Assert (stkGolden.size .==. stkActora.size)
+      prop_Top1Eq = Assert' ((stkGolden.size .==. 0) .|. top1Eq) (display_ (stkGolden.top1) " v " (stkActora.top1))
+      prop_Top2Eq = Assert' ((stkGolden.size .<=. 1) .|. top2Eq) (display_ (stkGolden.top2) " v " (stkActora.top2))
+      prop_SizeEq = Assert' (stkGolden.size .==. stkActora.size) (display_ (stkGolden.size) " v " (stkActora.size))
 
   let prop_Push1 = Forall \x -> WhenAction true (push1 stkGolden x >> push1 stkActora x >> incMaxSizeOne)
       --prop_Push2 = Forall \x -> WhenAction true (push2 stkGolden x >> push2 stkActora x >> incMaxSizeOne)
@@ -102,12 +105,12 @@ testBench = do
         incMaxSizeOne
 
   -- Note 2: Cannot pop 0
-  let popGuard = \n -> (n .>. 0) .&. (n .<=. stkGolden.size)
-      prop_Pop = Forall \n -> WhenAction (popGuard n) do
+  let popGuard = \n -> \p -> (n .>. 0) .&. (n .<=. stkGolden.size + p)
+      prop_Pop = Forall \n -> WhenAction (popGuard n 0) do
         pop stkGolden n
         pop stkActora n
         decMaxSize n
-      prop_PushPop = Forall \x -> Forall \n -> WhenAction (popGuard n) do
+      prop_PushPop = Forall \x -> Forall \n -> WhenAction (popGuard n 1) do
         pop stkGolden n
         pop stkActora n
         push1 stkGolden x
