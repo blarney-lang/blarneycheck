@@ -134,7 +134,8 @@ estimateTestCaseCount props maxSeqLen =
       foldl1 (>>) $ map displayInfo depthInfos
       finish
   where displayInfo (d, count, (simTime, synthTime)) = do
-          display "Clock cycles to test to depth " d ": " count
+          let bits = count.fromInteger.(logBase 2.0).(* 10).round.toInteger
+          display "Clock cycles to test to depth " d ": " count " or " (bits `div` 10) "." (bits `mod` 10) " bits"
           display_ "Simulation would run for about: "
           displayTime simTime
           display_ "\nSynthesized testing would take: "
