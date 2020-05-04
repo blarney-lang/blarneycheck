@@ -62,9 +62,9 @@ propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) useQueue inList = do
         nextVal = oldFinal ? (initial, next oldVal)
         currVal = incVal.active ? (incVal.val ? (nextVal, oldVal), appliedValReg.val)
 
-    let cycleDeq = when useQueue do deq appliedValsQueue
+    let cycleDeq = deq appliedValsQueue
     let cycleEnq = \newVal -> do
-        when useQueue do enq appliedValsQueue newVal
+        enq appliedValsQueue newVal
         appliedValReg <== newVal
 
     let cycleQueue = \inc -> do
@@ -84,7 +84,8 @@ propToImpureTB maxSeqLen (Forall (f :: b -> Prop)) useQueue inList = do
       , execFinal = isFinal currVal .&. ie.execFinal
       , incEdgeSeqLen = do
           appliedValReg <== initial -- Fixes tuples not initialised properly
-          enq appliedValsQueue initial
+          when (useQueue.inv) cycleDeq
+          enq appliedValsQueue (appliedValReg.val)
           incEdgeSeqLen ie
     }
 propToImpureTB maxSeqLen (ForallList 0 f) useQueue _ = do
@@ -174,7 +175,7 @@ makeStatefulTester impureProps rst maxSeqLen testFailed isDebug =
           incEdge edge (testFailed.inv .&. incNextDepth.val)
           execImpure edge true
           displayValue edge (testFailed .|. isDebug)
-          
+
           incNextDepth <== depthExhausted
           allEdgesFinal <== edge.execFinal .&. currFinal .&. allEdgesFinal.val
     , finishedExec = edge.doneExec
@@ -183,8 +184,8 @@ makeStatefulTester impureProps rst maxSeqLen testFailed isDebug =
     , reset = do
         rst
         currDepth <== 0
-        -- Don't increment the first sequence of lengths 1 and 2, since they start at 0s, others start at final val so inc those
-        incNextDepth <== (allEdgesFinal.val.inv .|. useQueue)
+        -- Don't inc after first reset
+        incNextDepth <== (currSeqLen.val .!=. 0)
         allEdgesFinal <== 1
     -- When all possibilities to current depth exhausted
     -- depthDone = 1 & incMaxDepth must be called
@@ -192,7 +193,7 @@ makeStatefulTester impureProps rst maxSeqLen testFailed isDebug =
         _ <- display_ "- All tests passed to depth %0d" (currSeqLen.val)
         -- Enqueue to queues
         incEdgeSeqLen edge
-        enq edgesTakenQueue 0
+        enq edgesTakenQueue edgesWidth
         -- Initialise values
         currSeqLen <== currSeqLen.val + 1
     , allSeqExec = allEdgesFinal.val .&. isAtFinalDepth
