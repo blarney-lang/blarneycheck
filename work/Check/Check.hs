@@ -129,15 +129,13 @@ estimateTestCaseCount props maxSeqLen =
       depthInfos = zip3 ([0 ..] :: [Integer]) depthClocks depthTimings
   in do
     always do
-      display_ "- Assuming simulation runs at " >> displayClkFreq simPerSec >> display_ " and synthesis at " >> displayClkFreq synthPerSec >> display " -"
+      display_ "- If sim runs at " >> displayClkFreq simPerSec >> display_ " (" >> displayBits simPerSec
+      display_ ") and native at " >> displayClkFreq synthPerSec >> display_ " (" >> displayBits synthPerSec >> display ") -"
       if (containsWhenRecipe impureProps) then display "- Assuming that WhenRecipes only take one cycle -" else noAction
       foldl1 (>>) $ map displayInfo depthInfos
       finish
   where displayInfo (d, count, (simTime, synthTime)) = do
-          let bits = count.fromInteger.(logBase 2.0).(* 10).round.toInteger
-          display "Clock cycles to test to depth " d ": " count " or " (bits `div` 10) "." (bits `mod` 10) " bits"
-          display_ "Simulation would run for about: "
-          displayTime simTime
-          display_ "\nSynthesized testing would take: "
-          displayTime synthTime
+          display_ "Clock cycles to test to depth " d ": " count " or " >> displayBits count
+          display_ "\nSimulation would run for about: " >> displayTime simTime
+          display_ "\nSynthesized testing would take: " >> displayTime synthTime
           display "\n"

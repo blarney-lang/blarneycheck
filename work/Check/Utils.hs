@@ -91,3 +91,8 @@ displayClkFreq freq =
   if (freq `rem` 10^3 /= 0) then display_ freq "Hz" else
   if (freq `rem` 10^6 /= 0) then display_ (freq `div` 10^3) "kHz" else
   display_ (freq `div` 10^6) "MHz"
+
+displayBits :: Integer -> Action ()
+displayBits cycles = 
+  let bits = cycles.fromInteger.(logBase 2.0).(* 10).round.toInteger
+  in display_ (bits `div` 10) "." (bits `mod` 10) " bits"
