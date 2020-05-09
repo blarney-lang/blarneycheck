@@ -742,5 +742,6 @@ set_global_assignment -name VERILOG_FILE SoCKitTop.v
 set_global_assignment -name VERILOG_FILE JTAGUART.v
 set_global_assignment -name VERILOG_FILE BlarneyComponent.v
 set_global_assignment -name VERILOG_FILE Top.v
-set_global_assignment -name VERILOG_FILE Src/Top-Verilog/Top.v
+set_global_assignment -name VERILOG_FILE "Src/Top-Verilog/Top.v"
 set_global_assignment -name QIP_FILE SoC/synthesis/SoC.qip
+set_global_assignment -name SDC_FILE SoCKitTop.sdc
