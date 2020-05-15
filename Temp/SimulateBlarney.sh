@@ -37,7 +37,7 @@ if [ -f "./$EXECUTABLE" ]; then
   mkdir -p ../Results/$OUTDIR/$EXECUTABLE
   (time ./top | head -n -1) 2>&1 | tee "../Results/$OUTDIR/$EXECUTABLE/output_$(date +"%Y_%d_%m_%H_%M_%S").txt"
 
-  cd "$FILEDIR"
+  cd ..
 fi
 
 rm -rf *.o *.hi "$FILEDIR/$EXECUTABLE" Out-Verilog

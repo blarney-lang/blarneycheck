@@ -16,6 +16,6 @@ for ex in $examples
 do
    cd "$ex"
    printf "\n$ex:\n"
-   grep -rohP '(?<=user\t).*' ./
+   ls -rt ./ | xargs grep -rohP '(?<=user\t).*'
    cd ..
 done
