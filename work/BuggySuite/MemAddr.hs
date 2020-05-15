@@ -1,12 +1,16 @@
 import Blarney
-import Check.Check
+import BlarneyCheck
 
-newtype MemAddr = MemAddr (Bit 41) deriving (Generic, Bits)
+newtype MemAddr = MemAddr (Bit 21) deriving (Generic, Bits)
 
 instance Generator MemAddr where
+  -- Initial value is 0x0...0FFF
   initial = unpack (constant $ 2^12-1)
+  -- Count up ignoring lowest 12 bits
   next current = unpack $ pack current + (constant $ 2^12)
+  -- Done when all bits are ones
   isFinal current = pack current .==. ones
+  -- Number of possible values = 2^(41-12)
   range = 2^29
 
 testBench :: Module ()
@@ -19,5 +23,6 @@ testBench = do
   
   return ()
 
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

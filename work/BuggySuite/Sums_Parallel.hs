@@ -1,5 +1,11 @@
 import Blarney
-import Check.Check
+import BlarneyCheck
+
+-- This could be done to a higher extent with a function to generate all of the properties
+-- Using one custom data type which allows specifying start and end points (similar to RandBits)
+
+-- Data types for parallel checking
+-- ==============
 
 newtype Lower a = Lower (Bit a) deriving (Generic, Bits)
 newtype Upper a = Upper (Bit a) deriving (Generic, Bits)
@@ -15,16 +21,19 @@ instance KnownNat n => Generator (Lower n) where
 
 instance KnownNat n => Generator (Upper n) where
   initial = unpack $ constant $ middleVal (valueOf @n)
-  next current = unpack $ pack current .+. 1
+  next current = unpack $ pack current + 1
   isFinal current = pack current .==. ones
   range = middleVal (valueOf @n)
 
+-- Check function itself
+-- ==============
+
 testBench :: Module ()
 testBench = do
-  let prop_Associativity1 = Forall \(Lower x) -> Forall \(y :: Bit 10) -> Forall \z -> Assert ((x .+. y) .+. z .==. x .+. (y .+. z))
-  let prop_Associativity2 = Forall \(Upper x) -> Forall \(y :: Bit 10) -> Forall \z -> Assert ((x .+. y) .+. z .==. x .+. (y .+. z))
-  let prop_Commutativity1 = Forall \(Lower x) -> Forall \(y :: Bit 15) ->              Assert (x .+. y .==. y .+. x)
-  let prop_Commutativity2 = Forall \(Upper x) -> Forall \(y :: Bit 15) ->              Assert (x .+. y .==. y .+. x)
+  let prop_Associativity1 = Forall \(Lower x) -> Forall \(y :: Bit 10) -> Forall \z -> Assert ((x + y) + z .==. x + (y + z))
+  let prop_Associativity2 = Forall \(Upper x) -> Forall \(y :: Bit 10) -> Forall \z -> Assert ((x + y) + z .==. x + (y + z))
+  let prop_Commutativity1 = Forall \(Lower x) -> Forall \(y :: Bit 15) ->              Assert (x + y .==. y + x)
+  let prop_Commutativity2 = Forall \(Upper x) -> Forall \(y :: Bit 15) ->              Assert (x + y .==. y + x)
   
   let properties = [
           ("Associativity1", prop_Associativity1)
@@ -38,5 +47,6 @@ testBench = do
   
   return ()
 
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

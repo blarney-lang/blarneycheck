@@ -1,12 +1,14 @@
 import Blarney
 import Blarney.Core.Utils
 import Data.Maybe
-import Check.Check
+import BlarneyCheck
 
 twoSort :: KnownNat n => (Bit n, Bit n) -> (Bit n, Bit n)
 twoSort (a, b) = a .<. b ? ((a, b), (b, a))
 
 -- Bubble sorting network
+-- ==============
+
 bubble :: KnownNat n => [Bit n] -> [Bit n]
 bubble [] = []
 bubble [x] = [x]
@@ -18,7 +20,9 @@ sort1 [] = []
 sort1 (x:xs) = smallest : sort1 rest
   where (smallest:rest) = bubble (x:xs)
 
--- Odd even sorting network, somewhat faster on FPGA (O(n^2) comparators vs O(n) depth)
+-- Even odd sorting network
+-- ==============
+
 sort2 :: KnownNat n => [Bit n] -> [Bit n]
 sort2 [] = []
 sort2 [a] = [a]
@@ -35,6 +39,9 @@ sort2 list = network!!(length list)
 --   On hardware both only have depth O(n)
 -- However the bitonic sorter below is depth O(log^2(n))
 -- Therefore FPGA execution should be even faster
+
+-- Util
+-- ==============
 
 type MBit n = Maybe (Bit n)
 
@@ -70,8 +77,9 @@ sort3' list =
       (top2, bot2) = cmpLists (top1.sort3'.reverse, bot1.sort3')
   in top2.reverse.bitonic ++ bot2.bitonic
 
+-- Bitonic sorter
+-- ==============
 
--- Bitonic sorter, should be much faster on FPGA (O(n^2) comparators vs O(log^2(n)) depth)
 sort3 :: KnownNat n => [Bit n] -> [Bit n]
 sort3 [] = []
 sort3 list = 
@@ -80,7 +88,8 @@ sort3 list =
   where expand 0 = map Just list
         expand n = Nothing : expand (n-1)
 
-
+-- Helper functions
+-- ==============
 
 isSorted :: KnownNat n => [Bit n] -> Bit 1
 isSorted [] = true
@@ -110,5 +119,6 @@ testBench = do
   
   return ()
 
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

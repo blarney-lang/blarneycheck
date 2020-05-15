@@ -1,24 +1,28 @@
-module Check.Check (
-  module Check.Generator
-, module Check.Property
-, module Check.Check
-) where
+module Core.Check
+  ( checkPure
+  , checkPureFPGA
+  , check
+  , checkFPGA
+  , estimateTestCaseCount
+  ) where
 
 import Blarney
 import Blarney.Queue
-import Check.Generator
-import Check.Property
-import Check.PureProp
-import Check.ImpureProp
-import Check.TestBench
-import Check.Utils
+import Core.Property
+import Core.PureProp
+import Core.ImpureProp
+import Core.TestBench
+import Core.Utils
 
+-- Use this function for simulation
 checkPure :: [Property] -> Module (Bit 1, Bit 1)
 checkPure = checkPure' (testPlusArgs "DEBUG")
 
+-- Use this function for synthesis
 checkPureFPGA :: Queue (Bit 8) -> [Property] -> Module ()
 checkPureFPGA bytesOut props = checkPure' 0 props >>= outputForFPGA bytesOut
 
+-- Check for pure only properties
 checkPure' :: Bit 1 -> [Property] -> Module (Bit 1, Bit 1)
 checkPure' isDebug props = let (pureProps, impureProps) = splitProperties props in
   if (length impureProps /= 0) then error "Trying to check impure properties without specifying a valid depth!" else do
@@ -41,12 +45,15 @@ checkPure' isDebug props = let (pureProps, impureProps) = splitProperties props 
         finish
     return (allDone.val, pureTB.failed)
 
+-- Use this function for simulation
 check :: [Property] -> Action() -> Int -> Module (Bit 1, Bit 1)
 check = check' (testPlusArgs "DEBUG")
 
+-- Use this function for synthesis
 checkFPGA :: Queue (Bit 8) -> [Property] -> Action() -> Int -> Module ()
 checkFPGA bytesOut props rst maxSeqLen = check' 0 props rst maxSeqLen >>= outputForFPGA bytesOut
 
+-- Check for sequential modules
 check' :: Bit 1 -> [Property] -> Action() -> Int -> Module (Bit 1, Bit 1)
 check' isDebug props rst maxSeqLen = let (pureProps, impureProps) = splitProperties props in
   if (maxSeqLen <= 0 || length impureProps == 0) then checkPure' isDebug props else do
@@ -116,7 +123,7 @@ check' isDebug props rst maxSeqLen = let (pureProps, impureProps) = splitPropert
     globalTime <== globalTime.val + 1
   return (allDone.val, displayingFail.val)
 
-
+-- Util for static analysis
 estimateTestCaseCount :: [Property] -> Integer -> Module ()
 estimateTestCaseCount props maxSeqLen =
   let (pureProps, impureProps) = splitProperties props

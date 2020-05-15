@@ -18,12 +18,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Check.Utils where
+module Core.Utils where
 
 import Blarney
 import Blarney.Queue
-import Check.Generator
-import Check.Property
+import Core.Generator
+import Core.Property
 
 import Data.Char (ord)
 

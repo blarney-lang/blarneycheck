@@ -2,7 +2,7 @@
 {-# LANGUAGE PolyKinds #-}
 
 import Blarney
-import Check.Check
+import BlarneyCheck
 
 newtype CustomRandBit n = CustomRandBit (Bit n) deriving (Generic, Bits)
 
@@ -41,5 +41,6 @@ testBench = do
   
   return ()
 
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

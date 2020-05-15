@@ -1,9 +1,9 @@
 import Blarney
 import Blarney.Recipe
-import BuggySuite.CPU_Impl
-import Check.Check
+import CPU_Impl
+import BlarneyCheck
 
--- Instruction Args
+-- Define custom type for store instructions
 newtype StoreInstr = StoreInstr Instr deriving (Generic, Bits)
 
 instance Generator StoreInstr where
@@ -84,13 +84,13 @@ testBench = do
         ]
   let reset = correctPc <== pc + 1
   
-  -- Testing to depth 2 would take under 10mins on FPGA vs about 50hrs in simulation
+  -- Testing to depth 2 would take under 25mins on FPGA vs about 27hrs in simulation
   -- ~ (2^17)^2 * 10 clock cycles (~2^17 possibilities (branch), repeated twice, with avg. seq length of 10; 4.5 + 4.5 + 1)
   _ <- check properties reset 1
   --estimateTestCaseCount properties 2
 
   return ()
 
--- Main function
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

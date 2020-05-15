@@ -12,7 +12,12 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE GADTs #-}
 
-module Check.Generator where
+module Core.Generator
+  ( SizedBits(..)
+  , Generator (..)
+  , RandBits (..)
+  , Seed (..)
+  ) where
 
 import Blarney
 

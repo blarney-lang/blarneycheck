@@ -2,12 +2,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check.Property where
+module Core.Property
+  ( Property(..)
+  , Prop (..)
+  ) where
 
 import Blarney
 import Blarney.Recipe
-import Check.Generator
-
+import Core.Generator
 
 type Property = (String, Prop)
 

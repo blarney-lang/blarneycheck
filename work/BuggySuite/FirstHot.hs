@@ -1,9 +1,11 @@
 import Blarney
-import Check.Check
+import BlarneyCheck
 
+-- Function under test
 firstHot :: KnownNat n => Bit n -> Bit n
 firstHot x = x .&. ((inv x) .+. 1)
 
+-- Helper function
 countOnes :: (KnownNat n, KnownNat (1 + Log2 n), 1 <= 1 + Log2 n) => Bit n -> Bit (1 + Log2 n)
 countOnes b = b.toBitList.(map zeroExtend).sumList
 
@@ -24,5 +26,6 @@ testBench = do
   
   return ()
 
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

@@ -1,8 +1,9 @@
--- This module implements a full-throughput dual-port stack.
-
 import Blarney
-import BuggySuite.ActoraStack_Impl
-import Check.Check
+import ActoraStack_Impl
+import BlarneyCheck
+
+-- Helper functions for register lists
+-- ===============
 
 indexIntoList :: (KnownNat n, Bits b, KnownNat (SizeOf b)) => [Reg b] -> Bit n -> b
 indexIntoList list idx = idxList 0 list
@@ -15,19 +16,23 @@ assignIntoList list (idx1, newVal1) (idx2, newVal2) = assignIdxList 0 list
           x <== (idx1 .==. currIdx) ? (newVal1, (idx2 .==. currIdx) ? (newVal2, x.val))
           assignIdxList (currIdx + 1) xs
 
--- Stack specification
--- (Parallel push and pop not supported)
-makeStackSpec :: (Bits a, KnownNat (SizeOf a), KnownNat n) => Module (Stack n a)
+
+-- Stack with same interface as Actora stack
+-- Use list of registers instead of BRAM
+-- ===============
+
+makeStackSpec :: (SizedBits a, KnownNat n) => Module (Stack n a)
 makeStackSpec = do
-  -- Size of stack
+  -- Pointer into list of registers
   sp :: Reg (Bit n) <- makeReg 0
   spWire :: Wire (Bit n) <- makeWire 0
   let spCurr = spWire.active ? (spWire.val, sp.val)
 
+  -- Values being pushed to stack
   val1 :: Wire a <- makeWire (unpack (constant 0))
   val2 :: Wire a <- makeWire (unpack (constant 0))
 
-  -- List of register, big enough to hold stack elements
+  -- List of registers, big enough to hold stack elements
   elems :: [Reg a] <- replicateM (2^valueOf @n) (makeReg dontCare)
   let elemByIdx = indexIntoList elems
   let firstPush = (val2.active ? (spCurr + 1, spCurr), val1.val)
@@ -69,15 +74,16 @@ testBench = do
   maxSize :: Reg (Bit 3) <- makeReg 0
   topTwo :: Reg (Bit 2) <- makeReg 0
   let incMaxSizeOne = do
-        --maxSize <== (maxSize.val .<. stkGolden.size + 1 ? (stkGolden.size + 1, maxSize.val))
+        -- Commented out version allowed copying from top two elements
+      --maxSize <== (maxSize.val .<. stkGolden.size + 1 ? (stkGolden.size + 1, maxSize.val))
         topTwo <== topTwo.val + (topTwo.val .==. 2 ? (0, 1))
         maxSize <== maxSize.val + (topTwo.val .==. 2 ? (1, 0))
       incMaxSizeTwo = do
-        --maxSize <== (maxSize.val .<. stkGolden.size + 2 ? (stkGolden.size + 2, maxSize.val))
+      --maxSize <== (maxSize.val .<. stkGolden.size + 2 ? (stkGolden.size + 2, maxSize.val))
         topTwo <== 2
         maxSize <== maxSize.val + (topTwo.val.zeroExtend)
       decMaxSize = \n -> do
-        --noAction
+      --noAction
         let topTwoProtect = topTwo.val.zeroExtend .>=. n
         topTwo <== (topTwoProtect ? (topTwo.val .-. n.lower, 0))
         maxSize <== maxSize.val - (topTwoProtect ? (0, n .-. topTwo.val.zeroExtend))
@@ -130,8 +136,8 @@ testBench = do
         ]
   let reset = stkGolden.clear >> stkActora.clear >> (maxSize <== 0) >> (topTwo <== 0)
 
-  _ <- check properties reset 4
-  --estimateTestCaseCount properties 7
+  _ <- check properties reset 2
+  --estimateTestCaseCount properties 6
 
   return ()
 

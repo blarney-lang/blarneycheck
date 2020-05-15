@@ -1,7 +1,7 @@
 -- Blarney imports
 import Blarney
 import Blarney.Recipe
-import Check.Check
+import BlarneyCheck
 
 -- Standard imports
 import Data.Proxy
@@ -113,5 +113,6 @@ testBench = do
 
   return ()
 
+-- Code generation
 main :: IO ()
 main = writeVerilogTop testBench "top" "Out-Verilog/"

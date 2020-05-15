@@ -2,12 +2,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check.PureProp where
+module Core.PureProp where
 
 import Blarney
-import Check.Generator
-import Check.Property
-import Check.TestBench
+import Core.Generator
+import Core.Property
+import Core.TestBench
 
 
 propertyToPureTB :: Property -> Module PureTestBench

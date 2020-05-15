@@ -1,4 +1,4 @@
-module BuggySuite.ActoraStack_Impl where
+module ActoraStack_Impl where
 
 -- This module implements a full-throughput dual-port stack.
 

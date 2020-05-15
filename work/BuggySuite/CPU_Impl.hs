@@ -1,4 +1,4 @@
-module BuggySuite.CPU_Impl where
+module CPU_Impl where
 
 -- Tiny 8-bit CPU with a 4-stage pipeline
 --

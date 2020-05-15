@@ -2,15 +2,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check.ImpureProp where
+module Core.ImpureProp where
 
 import Blarney
-import Blarney.Recipe
+import Blarney.Recipe (runRecipeOn)
 import Blarney.Queue
 import Blarney.Core.Utils
-import Check.Generator
-import Check.Property
-import Check.TestBench
+import Core.Generator
+import Core.Property
+import Core.TestBench
 
 -- Standard imports
 import Data.Proxy
@@ -35,7 +35,7 @@ propToImpureTB _ (WhenAction guardBit impureAction) _ _ =
 propToImpureTB _ (WhenRecipe guardBit impureRecipe) _ _ = do
     execEdge <- makeWire 0
     executing <- makeReg 0
-    myEdgeDone <- run (execEdge.val) impureRecipe
+    myEdgeDone <- runRecipeOn (execEdge.val) impureRecipe
     always do
       when (execEdge.val) (executing <== 1)
       when (myEdgeDone) (executing <== 0)

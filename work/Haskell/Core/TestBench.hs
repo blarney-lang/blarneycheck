@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
 
-module Check.TestBench where
+module Core.TestBench where
 
 import Blarney
 
