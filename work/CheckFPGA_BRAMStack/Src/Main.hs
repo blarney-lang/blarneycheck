@@ -3,7 +3,7 @@ import Blarney
 import Blarney.Queue
 import Blarney.Recipe
 import Blarney.Stream
-import Check.Check
+import BlarneyCheck
 
 -- Standard imports
 import Data.Proxy

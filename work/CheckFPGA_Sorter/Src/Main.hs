@@ -4,7 +4,7 @@ import Blarney.Queue
 import Blarney.Stream
 import Blarney.Core.Utils
 import Data.Maybe
-import Check.Check
+import BlarneyCheck
 
 twoSort :: KnownNat n => (Bit n, Bit n) -> (Bit n, Bit n)
 twoSort (a, b) = a .<. b ? ((a, b), (b, a))

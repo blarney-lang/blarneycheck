@@ -2,7 +2,7 @@
 import Blarney
 import Blarney.Queue
 import Blarney.Stream
-import Check.Check
+import BlarneyCheck
 
 firstHot :: KnownNat n => Bit n -> Bit n
 firstHot x = x .&. ((inv x) .+. 1)

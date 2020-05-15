@@ -47,7 +47,7 @@ testBench = do
                       Forall \(StoreInstr si2 :: StoreInstr) -> Forall \(two :: Bit 1) -> WhenRecipe true do
                         Seq [ Action do (instr <== si1)
                             , Action do (instr <== 0b10 # branchOffset # si1.rD) -- si1.rD => Data hazard
-                            , If two do Action (instr <== nop) -- Delay next instruction by either 0 or 1 clocks
+                            , If two (Action (instr <== nop)) (Action noAction) -- Delay next instruction by either 0 or 1 clocks
                             , Action do (instr <== si2) -- Branched? => Control hazard 1 or 2 cycles after branch
                             , Action do
                                 when (si1.imm .==. 0) do

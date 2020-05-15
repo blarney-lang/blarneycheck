@@ -2,7 +2,7 @@
 import Blarney
 import Blarney.Queue
 import Blarney.Stream
-import Check.Check
+import BlarneyCheck
 
 newtype Lower a = Lower (Bit a) deriving (Generic, Bits)
 newtype Upper a = Upper (Bit a) deriving (Generic, Bits)

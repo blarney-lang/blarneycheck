@@ -3,8 +3,8 @@
 import Blarney
 import Blarney.Queue
 import Blarney.Stream
-import BuggySuite.ActoraStack_Impl
-import Check.Check
+import ActoraStack_Impl
+import BlarneyCheck
 
 indexIntoList :: (KnownNat n, Bits b, KnownNat (SizeOf b)) => [Reg b] -> Bit n -> b
 indexIntoList list idx = idxList 0 list

@@ -2,7 +2,7 @@
 import Blarney
 import Blarney.Queue
 import Blarney.Stream
-import Check.Check
+import BlarneyCheck
 
 testBench :: Stream (Bit 8) -> Module (Stream (Bit 8))
 testBench bytesIn = do  
