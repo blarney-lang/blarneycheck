@@ -1,0 +1,12 @@
+- All tests passed to depth 0 at time 0 -
+- All tests passed to depth 1 at time 10 -
+- All tests passed to depth 2 at time 85 -
+- All tests passed to depth 3 at time 585 -
+- All tests passed to depth 4 at time 3710 -
+=== Found failing case at depth 5 after 21722 ticks: TopEq {1 v 0} ===
+0: Push 0x1
+1: Push 0x0
+2: Push 0x0
+3: Pop
+4: Pop
+5: 'TopEq {1 v 0}' fails

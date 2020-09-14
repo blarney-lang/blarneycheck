@@ -1,0 +1,9 @@
+#! /usr/bin/env bash
+
+BC_ROOT="$(dirname "$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )")"
+if [ -z "$BLARNEY_ROOT" ]; then
+  export BLARNEY_ROOT="$BC_ROOT/blarney"
+fi
+
+"$BLARNEY_ROOT/Scripts/blc" -I"$BC_ROOT/Haskell" -i"$BC_ROOT/Haskell" $@
+

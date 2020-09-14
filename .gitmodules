@@ -1,3 +1,4 @@
-[submodule "work/blarney"]
-	path = work/blarney
-	url = https://github.com/mn416/blarney
+[submodule "blarney"]
+	path = blarney
+	url = https://github.com/JonasAlaif/blarney.git
+	branch = jf613-change-test-script

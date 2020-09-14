@@ -1,5 +1,0 @@
---All tests passed at time 1073741823--
-
-real	1m17.841s
-user	1m17.798s
-sys	0m0.004s

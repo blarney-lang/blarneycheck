@@ -1,9 +1,0 @@
-- All tests passed to depth 0 at time 0 -
-- All tests passed to depth 1 at time 136 -
-- All tests passed to depth 2 at time 14008 -
-- All tests passed to depth 3 at time 1253240 -
-=== All tests passed to maximum specified depth of 4 at time 106587960 ===
-
-real	1m25.451s
-user	1m25.453s
-sys	0m0.000s
