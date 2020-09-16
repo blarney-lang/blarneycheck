@@ -2,7 +2,7 @@
 
 # Run regression tests
 
-EXAMPLES=(
+BLARNEY_EXAMPLES=(
   ActoraStack
   BRAMStack
   CPU
@@ -19,4 +19,4 @@ if [ -z "$BLARNEY_ROOT" ]; then
   export BLARNEY_ROOT="$BC_ROOT/blarney"
 fi
 
-EXAMPLES="${EXAMPLES[@]}" TESTING_ROOT=$BC_ROOT "$BLARNEY_ROOT/Test/test.sh" $@
+BLARNEY_EXAMPLES="${BLARNEY_EXAMPLES[@]}" BLARNEY_TESTING_ROOT=$BC_ROOT "$BLARNEY_ROOT/Test/test.sh" $@

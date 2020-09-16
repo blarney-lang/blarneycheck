@@ -1,4 +1,4 @@
 [submodule "blarney"]
 	path = blarney
-	url = https://github.com/JonasAlaif/blarney.git
-	branch = jf613-change-test-script
+	url = https://github.com/blarney-lang/blarney.git
+	branch = master
