@@ -1,7 +1,10 @@
-# blarneycheck
----
+# BlarneyCheck
 
-An exhaustive property-based testing library for Blarney.
+An exhaustive property-based testing library for
+[Blarney](https://github.com/blarney-lang/blarney).
+See the associated [project
+report](Documentation/blarneycheck:_Property-based_Testing_for_Hardware.pdf)
+for additional background and documentation.
 
 Make sure to use the `--recursive` flag to include the Blarney repo:
 ```sh
