@@ -11,7 +11,7 @@ for additional background and documentation.
 
 Make sure to use the `--recursive` flag to include the Blarney repo:
 ```sh
-> git clone --recursive https://github.com/JonasAlaif/blarneycheck.git
+> git clone --recursive https://github.com/blarney-lang/blarneycheck.git
 ```
 Alternatively set the `BLARNEY_ROOT` environment variable to point at a copy of Blarney.
 
